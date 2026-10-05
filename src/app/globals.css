@@ -1,0 +1,197 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Design tokens — docs/02-DESIGN-SYSTEM.md §2. Use semantic names, never raw hex. */
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --surface-2: #f0eee8;
+  --border: #e4e1d9;
+  --border-strong: #cfcac0;
+  --ink: #17181b;
+  --ink-2: #4a4d55;
+  --ink-3: #676a72;
+  --accent: #1f5c4b;
+  --accent-hover: #174a3c;
+  --accent-soft: #e3eee9;
+  --on-accent: #ffffff;
+  --success: #276943;
+  --warning: #8a560e;
+  --danger: #a63a33;
+  --info: #3a5f8f;
+  --shadow-float: 0 1px 2px rgba(23, 24, 27, 0.04), 0 8px 24px rgba(23, 24, 27, 0.06);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #111214;
+  --surface: #18191c;
+  --surface-2: #202226;
+  --border: #2a2c31;
+  --border-strong: #3a3d43;
+  --ink: #ecebe7;
+  --ink-2: #b3b4b8;
+  --ink-3: #92959c;
+  --accent: #5fb39a;
+  --accent-hover: #78c4ad;
+  --accent-soft: #1b2e28;
+  --on-accent: #0d1f1a;
+  --success: #5fb37f;
+  --warning: #d9a24a;
+  --danger: #e07a72;
+  --info: #7fa3d1;
+  --shadow-float: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+
+  /* shadcn compatibility aliases (generated components read these) */
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--ink-3);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--ink);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
+  --color-destructive: var(--danger);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-instrument), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  --shadow-float: var(--shadow-float);
+  --ease-out-quint: var(--ease-out);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  ::placeholder {
+    color: var(--ink-3);
+    opacity: 1;
+  }
+  ::selection {
+    background: var(--accent-soft);
+  }
+}
+
+@utility tnum {
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility text-display {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+@utility text-h2 {
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 600;
+}
+@utility text-h3 {
+  font-size: 0.9375rem;
+  line-height: 1.4;
+  font-weight: 600;
+}
+@utility text-label {
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+@utility text-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--ink-3);
+}
+
+/* Lenis */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Preview: region that just changed (02 §8) */
+@keyframes paper-flash {
+  from { background: var(--color-accent-soft, #e3eee9); opacity: 1; }
+  to { opacity: 0; }
+}
+.paper-flash {
+  background: #e3eee9;
+  animation: paper-flash 600ms var(--ease-out) forwards;
+  z-index: 0;
+}
+.invoice-paper > * { position: relative; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+  .no-print { display: none !important; }
+  body * { visibility: hidden; }
+  .print-root, .print-root * { visibility: visible; }
+  .print-root { position: absolute; inset: 0 auto auto 0; background: #fff; }
+  .invoice-paper { box-shadow: none !important; }
+}

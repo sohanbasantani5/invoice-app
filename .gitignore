@@ -1,0 +1,50 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# next.js / build output
+/.next/
+/out/
+/build
+*.tsbuildinfo
+next-env.d.ts
+
+# testing
+/coverage
+/test-results/
+/playwright-report/
+
+# env files: never commit real values (the example file has empty ones)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# local tooling + downloaded credentials (never commit)
+/supabase/.temp/
+client_secret*.json
+credentials*.json
+service-account*.json
+*.pem
+*.key
+*.p12
+
+# private notes and local assistant config (keep out of the public repo)
+/private/
+/.claude/
+CLAUDE.local.md
+harness.tmp.mjs
+
+# misc
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*

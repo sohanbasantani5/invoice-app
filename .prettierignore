@@ -1,0 +1,5 @@
+node_modules
+.next
+supabase
+package-lock.json
+docs
