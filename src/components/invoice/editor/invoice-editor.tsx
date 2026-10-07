@@ -84,6 +84,10 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
 
   const [seller, setSeller] = useState(initialSeller);
   const [refreshSeller, setRefreshSeller] = useState(false);
+  // Signature uploaded in the editor (profile-level, like the logo). Kept in state so the preview,
+  // the downloaded PDF and the emailed PDF all use the new image before/without a reload.
+  const [signaturePath, setSignaturePath] = useState<string | null>(initialSeller.signature_path ?? null);
+  const [signatureUrl, setSignatureUrl] = useState<string | null>(assets.signatureUrl ?? null);
   const [deleting, setDeleting] = useState<DeletableInvoice[] | null>(null);
   const [id, setId] = useState(initial.id);
   const [status, setStatus] = useState<InvoiceStatus>(initialStatus);
@@ -106,7 +110,8 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
   const calc = useMemo(() => calcDocument(doc), [doc]);
   const model = useMemo(() => buildPaperModel(doc, calc), [doc, calc]);
   const qr = useQr(model.payment.upiText);
-  const paperAssets = useMemo(() => ({ ...assets, qrDataUrl: qr }), [assets, qr]);
+  const fileAssets = useMemo(() => ({ ...assets, signatureUrl }), [assets, signatureUrl]);
+  const paperAssets = useMemo(() => ({ ...fileAssets, qrDataUrl: qr }), [fileAssets, qr]);
   const checklist = useMemo(
     () =>
       complianceChecklist({
@@ -200,14 +205,14 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
       const m = buildPaperModel(d, calcDocument(d));
       const qrUrl = m.payment.upiText ? await qrDataUrl(m.payment.upiText) : null;
       const { downloadInvoicePdf, pdfFileName } = await import("../pdf/download");
-      await downloadInvoicePdf(m, { ...assets, qrDataUrl: qrUrl }, pdfFileName(d.invoice_number, d.buyer.name));
+      await downloadInvoicePdf(m, { ...fileAssets, qrDataUrl: qrUrl }, pdfFileName(d.invoice_number, d.buyer.name));
     } catch (e) {
       toast.error("Couldn't create the PDF. Try the print view instead.");
       console.error(e);
     } finally {
       setDownloading(false);
     }
-  }, [getValues, seller, status, amountPaidPaise, assets]);
+  }, [getValues, seller, status, amountPaidPaise, fileAssets]);
 
   // Opened from the list's "Download PDF" (?download=1).
   useEffect(() => {
@@ -362,7 +367,7 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
                 <Button variant="secondary" onClick={download} disabled={downloading}>
                   <Download aria-hidden /> {downloading ? "Preparing…" : "Download"}
                 </Button>
-                <EmailButton prepare={prepareEmail} config={email} assets={assets} />
+                <EmailButton prepare={prepareEmail} config={email} assets={fileAssets} />
                 <Button onClick={() => void save("save")} disabled={saving}>
                   Save
                 </Button>
@@ -432,7 +437,16 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
             />
             <ItemsTable items={items} canTax={canTax} calc={calc} defaultGst={canTax ? defaultGst : 0} />
             <TotalsCard model={model} calc={calc} currency={values.currency ?? "INR"} />
-            <PaymentNotes seller={seller} />
+            <PaymentNotes
+              seller={seller}
+              signatureUserId={email.userId}
+              signaturePath={signaturePath}
+              signatureUrl={signatureUrl}
+              onSignatureChange={(next) => {
+                setSignaturePath(next.path);
+                setSignatureUrl(next.url);
+              }}
+            />
             {children}
           </form>
         </div>
@@ -474,7 +488,7 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
         <Button variant="secondary" size="lg" onClick={download} disabled={downloading} aria-label="Download PDF">
           <Download aria-hidden />
         </Button>
-        <EmailButton prepare={prepareEmail} config={email} assets={assets} compact />
+        <EmailButton prepare={prepareEmail} config={email} assets={fileAssets} compact />
         <Button size="lg" onClick={() => void save("save")} disabled={saving}>
           <FileText aria-hidden /> Save
         </Button>

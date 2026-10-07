@@ -6,6 +6,7 @@ import type { InvoiceDocument } from "./types";
 import { DOC_TITLES, footerLine } from "./doc-type";
 import { amountInWords } from "./words";
 import { ACCENTS } from "./template-tokens";
+import { buildSignatureState, type SignatureState } from "./signature";
 import { stateLabel } from "@/lib/india/states";
 import { formatDate, formatMoney } from "@/lib/format";
 
@@ -42,8 +43,8 @@ export type PaperModel = {
   payment: { lines: { label: string; value: string }[]; upiText: string | null; upiCaption: string | null };
   notes: string | null;
   terms: string | null;
-  signatureFor: string;
-  showSignatureImage: boolean;
+  /** Signature area, or the electronic-document notice when it is switched off. */
+  signature: SignatureState;
   footer: string;
 };
 
@@ -187,8 +188,7 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
     },
     notes: doc.notes ?? null,
     terms: doc.terms ?? null,
-    signatureFor: `For ${sellerName}`,
-    showSignatureImage: doc.show_signature,
+    signature: buildSignatureState(doc.show_signature, sellerName),
     footer: footerLine(doc.doc_type, s.gst_status),
   };
 }

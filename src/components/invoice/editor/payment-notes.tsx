@@ -4,15 +4,28 @@ import Link from "next/link";
 import { useFormContext } from "react-hook-form";
 import { Field, Switch, Textarea } from "@/components/ui/field";
 import { Section } from "./section";
+import { SignatureField, type SignatureChange } from "./signature-field";
 import type { InvoiceFormValues } from "@/lib/validation/invoice";
 import type { SellerSnapshot } from "@/lib/invoice/types";
 
-export function PaymentNotes({ seller }: { seller: SellerSnapshot }) {
+export function PaymentNotes({
+  seller,
+  signatureUserId,
+  signaturePath,
+  signatureUrl,
+  onSignatureChange,
+}: {
+  seller: SellerSnapshot;
+  signatureUserId: string;
+  signaturePath: string | null;
+  signatureUrl: string | null;
+  onSignatureChange: (next: SignatureChange) => void;
+}) {
   const { register } = useFormContext<InvoiceFormValues>();
   const r = register;
   const hasBank = !!(seller.bank_account_number || seller.bank_name);
   return (
-    <Section id="payment" title="Payment & notes" defaultOpen={false} summary="Bank, UPI QR, notes">
+    <Section id="payment" title="Payment & notes" defaultOpen={false} summary="Bank, UPI QR, signature, notes">
       <div className="flex flex-col gap-2">
         <Switch
           label="Show bank details"
@@ -24,7 +37,12 @@ export function PaymentNotes({ seller }: { seller: SellerSnapshot }) {
           description={seller.upi_id ? seller.upi_id : "Add a UPI ID in Settings to get a QR code."}
           {...r("show_upi_qr")}
         />
-        <Switch label="Show signature" description={seller.signature_path ? "Uses your uploaded signature." : "Shows a blank space to sign."} {...r("show_signature")} />
+        <SignatureField
+          userId={signatureUserId}
+          path={signaturePath}
+          url={signatureUrl}
+          onChange={onSignatureChange}
+        />
         <Link href="/settings?tab=payments" className="w-fit text-xs text-accent hover:underline">
           Edit payment details in Settings
         </Link>

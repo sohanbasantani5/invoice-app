@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PaperModel, PaperParty } from "@/lib/invoice/paper-model";
 import { templateTokens as t } from "@/lib/invoice/template-tokens";
+import { SignatureBlock } from "./signature-block";
 
 export type PaperAssets = { logoUrl?: string | null; signatureUrl?: string | null; qrDataUrl?: string | null };
 
@@ -256,21 +257,8 @@ export function InvoicePaper({
         </Flash>
       )}
 
-      {/* 7. Signature */}
-      <div className="mt-auto flex justify-end pt-[10mm]">
-        <div className="text-center" style={{ minWidth: "50mm" }}>
-          <div style={{ fontSize: `${t.small}pt`, color: t.ink2 }}>{m.signatureFor}</div>
-          <div className="grid place-items-center" style={{ height: "16mm" }}>
-            {m.showSignatureImage && assets.signatureUrl && (
-              // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-              <img src={assets.signatureUrl} alt="" style={{ maxHeight: "14mm", maxWidth: "45mm" }} className="object-contain" />
-            )}
-          </div>
-          <div style={{ borderTop: `1px solid ${t.rule}`, paddingTop: "1mm", fontSize: `${t.small}pt`, color: t.ink2 }}>
-            Authorised signatory
-          </div>
-        </div>
-      </div>
+      {/* 7. Signature, or the electronic-document notice */}
+      <SignatureBlock model={m} assets={assets} />
 
       {/* 8. Footer */}
       <div className="mt-[6mm] text-center" style={{ fontSize: `${t.tiny}pt`, color: t.ink3 }}>

@@ -5,6 +5,7 @@ import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/
 import type { PaperModel, PaperParty } from "@/lib/invoice/paper-model";
 import { templateTokens as t } from "@/lib/invoice/template-tokens";
 import type { PaperAssets } from "../preview/invoice-paper";
+import { SignatureBlock } from "./signature-block";
 
 let registered = false;
 function registerFonts() {
@@ -217,19 +218,8 @@ export function InvoicePdf({ model: m, assets = {} }: { model: PaperModel; asset
           </View>
         )}
 
-        {/* 7. Signature */}
-        <View style={{ marginTop: "auto", paddingTop: mm(10), alignItems: "flex-end" }} wrap={false}>
-          <View style={{ width: mm(55), alignItems: "center" }}>
-            <Text style={{ fontSize: t.small, color: t.ink2 }}>{m.signatureFor}</Text>
-            <View style={{ height: mm(16), justifyContent: "center" }}>
-              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
-              {m.showSignatureImage && assets.signatureUrl && <Image src={assets.signatureUrl} style={{ maxHeight: mm(14), maxWidth: mm(45), objectFit: "contain" }} />}
-            </View>
-            <Text style={{ width: "100%", textAlign: "center", borderTopWidth: 1, borderColor: t.rule, paddingTop: mm(1), fontSize: t.small, color: t.ink2 }}>
-              Authorised signatory
-            </Text>
-          </View>
-        </View>
+        {/* 7. Signature, or the electronic-document notice */}
+        <SignatureBlock model={m} assets={assets} />
 
         {/* 8. Footer */}
         <Text style={{ marginTop: mm(6), textAlign: "center", fontSize: t.tiny, color: t.ink3 }}>{m.footer}</Text>
