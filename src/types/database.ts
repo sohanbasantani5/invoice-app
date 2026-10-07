@@ -48,6 +48,7 @@ export type ProfileRow = {
   email_subject_template: string | null;
   email_body_template: string | null;
   email_body_fallback_template: string | null;
+  default_template_id: string;
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
@@ -127,6 +128,7 @@ export type InvoiceRow = {
   show_bank: boolean;
   show_upi_qr: boolean;
   show_signature: boolean;
+  template_id: string;
   sent_at: string | null;
   paid_at: string | null;
   created_at: string;

@@ -46,6 +46,7 @@ export type PaperModel = {
   /** Signature area, or the electronic-document notice when it is switched off. */
   signature: SignatureState;
   footer: string;
+  template_id: string;
 };
 
 const join = (parts: (string | null | undefined)[], sep = ", ") =>
@@ -190,5 +191,6 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
     terms: doc.terms ?? null,
     signature: buildSignatureState(doc.show_signature, sellerName),
     footer: footerLine(doc.doc_type, s.gst_status),
+    template_id: doc.template_id || "default",
   };
 }

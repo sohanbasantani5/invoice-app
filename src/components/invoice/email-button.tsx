@@ -50,7 +50,7 @@ export function EmailButton({
       const qr = model.payment.upiText ? await qrDataUrl(model.payment.upiText) : null;
       const { buildInvoicePdf, saveBlob, pdfFileName } = await import("./pdf/download");
       const fileName = pdfFileName(doc.invoice_number, doc.buyer.name);
-      const blob = await buildInvoicePdf(model, { ...assets, qrDataUrl: qr });
+      const blob = await buildInvoicePdf(model, { ...assets, qrDataUrl: qr }, doc.template_id);
 
       // Private bucket, owner-only upload. The Gmail draft reads the PDF from here; the fallback links to it.
       const sb = createClient();

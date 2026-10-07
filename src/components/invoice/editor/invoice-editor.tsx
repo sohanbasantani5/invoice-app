@@ -14,8 +14,10 @@ import { DetailsCard } from "./details-card";
 import { ItemsTable } from "./items-table";
 import { Ticker, TotalsCard } from "./totals-card";
 import { PaymentNotes } from "./payment-notes";
+import { TemplateSelector } from "./template-selector";
 import { ComplianceBadge } from "./compliance-badge";
-import { InvoicePaper, type PaperAssets } from "../preview/invoice-paper";
+import { type PaperAssets } from "../preview/invoice-paper";
+import { getTemplate } from "../templates/registry";
 import { ScaledPaper } from "../preview/scaled-paper";
 import { qrDataUrl, useQr } from "../preview/use-assets";
 import { StatusPill } from "../status-pill";
@@ -205,7 +207,7 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
       const m = buildPaperModel(d, calcDocument(d));
       const qrUrl = m.payment.upiText ? await qrDataUrl(m.payment.upiText) : null;
       const { downloadInvoicePdf, pdfFileName } = await import("../pdf/download");
-      await downloadInvoicePdf(m, { ...fileAssets, qrDataUrl: qrUrl }, pdfFileName(d.invoice_number, d.buyer.name));
+      await downloadInvoicePdf(m, { ...fileAssets, qrDataUrl: qrUrl }, pdfFileName(d.invoice_number, d.buyer.name), d.template_id);
     } catch (e) {
       toast.error("Couldn't create the PDF. Try the print view instead.");
       console.error(e);
@@ -462,7 +464,12 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
               Preview total {model.totals.find((t) => t.rule)?.value}
             </p>
             <ScaledPaper>
-              <InvoicePaper model={model} assets={paperAssets} highlight />
+              
+              {(() => {
+                const PreviewTemplate = getTemplate(values.template_id || "default").preview;
+                return <PreviewTemplate model={model} assets={paperAssets} highlight />;
+              })()}
+
             </ScaledPaper>
           </div>
         </div>

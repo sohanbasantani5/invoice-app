@@ -75,6 +75,7 @@ export const invoiceFormSchema = z.object({
   show_bank: z.boolean().default(true),
   show_upi_qr: z.boolean().default(true),
   show_signature: z.boolean().default(true),
+  template_id: z.string().default("default"),
 });
 
 export type InvoiceFormValues = z.input<typeof invoiceFormSchema>;

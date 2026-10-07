@@ -10,7 +10,8 @@ import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
 import { EmailButton } from "./email-button";
 import { StatusControl, type StatusState } from "./status-control";
 import { StatusPill } from "./status-pill";
-import { InvoicePaper, type PaperAssets } from "./preview/invoice-paper";
+import { type PaperAssets } from "./preview/invoice-paper";
+import { getTemplate } from "./templates/registry";
 import { ScaledPaper } from "./preview/scaled-paper";
 import { qrDataUrl, useQr } from "./preview/use-assets";
 import { calcDocument } from "@/lib/invoice/document";
@@ -49,12 +50,14 @@ export function InvoiceView({
   const paperAssets = useMemo(() => ({ ...assets, qrDataUrl: qr }), [assets, qr]);
   const cancelled = state.status === "cancelled";
 
+  const ViewTemplate = getTemplate(model.template_id).preview;
+
   async function download() {
     setDownloading(true);
     try {
       const qrUrl = model.payment.upiText ? await qrDataUrl(model.payment.upiText) : null;
       const { downloadInvoicePdf, pdfFileName } = await import("./pdf/download");
-      await downloadInvoicePdf(model, { ...assets, qrDataUrl: qrUrl }, pdfFileName(doc.invoice_number, doc.buyer.name));
+      await downloadInvoicePdf(model, { ...assets, qrDataUrl: qrUrl }, pdfFileName(doc.invoice_number, doc.buyer.name), model.template_id);
     } catch (e) {
       toast.error("Couldn't create the PDF. Try the print view instead.");
       console.error(e);
@@ -145,7 +148,7 @@ export function InvoiceView({
 
       <div className="mt-6 rounded-xl bg-surface-2 p-3 sm:p-6">
         <ScaledPaper>
-          <InvoicePaper model={model} assets={paperAssets} />
+          <ViewTemplate model={model} assets={paperAssets} />
         </ScaledPaper>
       </div>
 

@@ -133,6 +133,7 @@ export function formToDocument(
     show_bank: v.show_bank ?? true,
     show_upi_qr: v.show_upi_qr ?? true,
     show_signature: v.show_signature ?? true,
+    template_id: v.template_id || "default",
   };
 }
 
@@ -187,6 +188,7 @@ export function rowToDocument(row: InvoiceRow, items: InvoiceItemRow[]): Invoice
     show_bank: row.show_bank,
     show_upi_qr: row.show_upi_qr,
     show_signature: row.show_signature,
+    template_id: row.template_id || "default",
   };
 }
 
@@ -245,6 +247,7 @@ export function documentToForm(doc: InvoiceDocument, clientId: string | null): I
     show_bank: doc.show_bank,
     show_upi_qr: doc.show_upi_qr,
     show_signature: doc.show_signature,
+    template_id: doc.template_id || "default",
   };
 }
 

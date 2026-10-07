@@ -22,6 +22,7 @@ export type SellerSnapshot = {
   logo_path?: string | null;
   signature_path?: string | null;
   template_accent?: TemplateAccent;
+  default_template_id?: string;
   show_logo?: boolean;
 };
 
@@ -88,4 +89,5 @@ export type InvoiceDocument = {
   show_bank: boolean;
   show_upi_qr: boolean;
   show_signature: boolean;
+  template_id: string;
 };

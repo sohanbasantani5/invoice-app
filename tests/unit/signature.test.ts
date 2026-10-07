@@ -62,6 +62,7 @@ const doc = (over: Partial<InvoiceDocument> = {}): InvoiceDocument => ({
   show_bank: true,
   show_upi_qr: true,
   show_signature: true,
+  template_id: "default",
   ...over,
 });
 

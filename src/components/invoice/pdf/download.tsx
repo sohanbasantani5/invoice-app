@@ -30,14 +30,15 @@ export function pdfFileName(invoiceNumber: string, client: string | null | undef
 }
 
 /** Builds the vector PDF in the browser. The PDF library loads only now. */
-export async function buildInvoicePdf(model: PaperModel, assets: PaperAssets): Promise<Blob> {
-  const [{ pdf }, { InvoicePdf }, logoUrl, signatureUrl] = await Promise.all([
+export async function buildInvoicePdf(model: PaperModel, assets: PaperAssets, templateId: string = "default"): Promise<Blob> {
+  const [{ pdf }, registry, logoUrl, signatureUrl] = await Promise.all([
     import("@react-pdf/renderer"),
-    import("./invoice-pdf"),
+    import("../templates/registry"),
     toPng(assets.logoUrl),
     toPng(assets.signatureUrl),
   ]);
-  return pdf(<InvoicePdf model={model} assets={{ ...assets, logoUrl, signatureUrl }} />).toBlob();
+  const PdfTemplate = registry.getTemplate(templateId).pdf;
+  return pdf(<PdfTemplate model={model} assets={{ ...assets, logoUrl, signatureUrl }} />).toBlob();
 }
 
 export function saveBlob(blob: Blob, fileName: string) {
@@ -50,6 +51,6 @@ export function saveBlob(blob: Blob, fileName: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-export async function downloadInvoicePdf(model: PaperModel, assets: PaperAssets, fileName: string) {
-  saveBlob(await buildInvoicePdf(model, assets), fileName);
+export async function downloadInvoicePdf(model: PaperModel, assets: PaperAssets, fileName: string, templateId: string = "default") {
+  saveBlob(await buildInvoicePdf(model, assets, templateId), fileName);
 }

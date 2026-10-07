@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { InvoicePaper, type PaperAssets } from "@/components/invoice/preview/invoice-paper";
+import { type PaperAssets } from "@/components/invoice/preview/invoice-paper";
+import { getTemplate } from "@/components/invoice/templates/registry";
 import { useQr } from "@/components/invoice/preview/use-assets";
 import type { PaperModel } from "@/lib/invoice/paper-model";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,12 @@ export function PrintView({ model, assets }: { model: PaperModel; assets: PaperA
         </Button>
       </div>
       <div className="print-root mx-auto mb-8 w-fit shadow-float print:m-0 print:shadow-none">
-        <InvoicePaper model={model} assets={{ ...assets, qrDataUrl: qr }} />
+        
+        {(() => {
+          const TemplateComponent = getTemplate(model.template_id || "default").preview;
+          return <TemplateComponent model={model} assets={{ ...assets, qrDataUrl: qr }} />;
+        })()}
+
       </div>
     </div>
   );
