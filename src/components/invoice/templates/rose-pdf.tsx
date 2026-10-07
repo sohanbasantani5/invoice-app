@@ -177,10 +177,9 @@ export function RosePdf({ model: m, assets = {} }: { model: PaperModel; assets?:
                     ))}
                   </View>
                 )}
-                {assets.qrDataUrl && m.payment.upiCaption && (
+                {assets.qrDataUrl && (
                   <View style={{ alignItems: "center", marginLeft: mm(4) }}>
                     <Image src={assets.qrDataUrl} style={{ width: mm(22), height: mm(22) }} />
-                    <Text style={{ fontSize: 6.5, color: "#7a6a6b", marginTop: mm(1), fontFamily: "Inter" }}>{m.payment.upiCaption}</Text>
                   </View>
                 )}
               </View>

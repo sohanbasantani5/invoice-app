@@ -184,10 +184,9 @@ export function RosePaper({ model: m, assets = {}, highlight = false }: { model:
                   ))}
                 </div>
               )}
-              {assets.qrDataUrl && m.payment.upiCaption && (
+              {assets.qrDataUrl && (
                 <div className="shrink-0 text-center">
                   <img src={assets.qrDataUrl} alt="UPI QR" className="size-[22mm] mix-blend-multiply" />
-                  <div style={{ fontSize: "6.5pt", color: "#7a6a6b", marginTop: "1mm" }}>{m.payment.upiCaption}</div>
                 </div>
               )}
             </div>

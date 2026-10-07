@@ -74,6 +74,7 @@ export default async function NewInvoicePage({ searchParams }: PageProps<"/invoi
     show_bank: true,
     show_upi_qr: true,
     show_signature: true,
+    template_id: profile?.default_template_id ?? "default",
   };
 
   // Duplicate: same client and lines, new number, today's date (01 §6).

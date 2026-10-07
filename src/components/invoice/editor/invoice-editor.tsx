@@ -392,6 +392,9 @@ export function InvoiceEditor({ initial, seller: initialSeller, profileSeller, s
             className="flex flex-col gap-4 px-4 pt-5 pb-32 md:px-6 lg:pb-16"
             noValidate
           >
+            <Section id="template" title="Template" defaultOpen={true}>
+              <TemplateSelector />
+            </Section>
             <Section
               id="from"
               title="From"

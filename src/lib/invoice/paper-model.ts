@@ -185,7 +185,7 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
     payment: {
       lines: payLines,
       upiText,
-      upiCaption: upiText ? `Scan to pay ${money(payable)}` : null,
+      upiCaption: null,
     },
     notes: doc.notes ?? null,
     terms: doc.terms ?? null,

@@ -43,6 +43,6 @@ export function allowedDocTypes(status: GstStatus | null | undefined): DocType[]
 
 export function footerLine(docType: DocType, status: GstStatus | null | undefined): string {
   if (status === "composition") return "Composition taxable person, not eligible to collect tax on supplies.";
-  if (status !== "regular" && docType !== "tax_invoice") return "Supplier not registered under GST.";
+  if (status !== "regular" && docType !== "tax_invoice") return "";
   return "This is a computer-generated invoice.";
 }

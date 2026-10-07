@@ -201,11 +201,10 @@ export function InvoicePaper({
                   ))}
                 </div>
               )}
-              {assets.qrDataUrl && m.payment.upiCaption && (
+              {assets.qrDataUrl && (
                 <div className="shrink-0 text-center">
                   {/* eslint-disable-next-line @next/next/no-img-element -- data URL */}
                   <img src={assets.qrDataUrl} alt="UPI QR code" style={{ width: "24mm", height: "24mm" }} />
-                  <div style={{ fontSize: `${t.tiny}pt`, color: t.ink2, marginTop: "1mm" }}>{m.payment.upiCaption}</div>
                 </div>
               )}
             </div>

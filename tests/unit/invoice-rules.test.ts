@@ -35,7 +35,7 @@ describe("doc type", () => {
     expect(allowedDocTypes("regular")).toContain("tax_invoice");
     expect(allowedDocTypes("composition")).toEqual(["bill_of_supply", "credit_note"]);
     expect(allowedDocTypes(undefined)).toEqual(["invoice", "credit_note"]);
-    expect(footerLine("invoice", "unregistered")).toBe("Supplier not registered under GST.");
+    expect(footerLine("invoice", "unregistered")).toBe("");
     expect(footerLine("bill_of_supply", "composition")).toMatch(/Composition taxable person/);
     expect(footerLine("tax_invoice", "regular")).toBe("This is a computer-generated invoice.");
   });

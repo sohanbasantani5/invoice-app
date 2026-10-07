@@ -173,11 +173,10 @@ export function InvoicePdf({ model: m, assets = {} }: { model: PaperModel; asset
                     ))}
                   </View>
                 )}
-                {assets.qrDataUrl && m.payment.upiCaption && (
+                {assets.qrDataUrl && (
                   <View style={{ alignItems: "center" }}>
                     {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
                     <Image src={assets.qrDataUrl} style={{ width: mm(24), height: mm(24) }} />
-                    <Text style={{ fontSize: t.tiny, color: t.ink2, marginTop: mm(1) }}>{m.payment.upiCaption}</Text>
                   </View>
                 )}
               </View>

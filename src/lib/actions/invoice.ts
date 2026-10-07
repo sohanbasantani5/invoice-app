@@ -135,6 +135,7 @@ export async function saveInvoice(
     show_bank: doc.show_bank,
     show_upi_qr: doc.show_upi_qr,
     show_signature: doc.show_signature,
+    template_id: doc.template_id || "default",
   };
   const items = doc.lines
     .map((l, i) => ({ l, c: calc.lines[i], i }))

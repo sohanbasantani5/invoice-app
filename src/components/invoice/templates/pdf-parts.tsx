@@ -170,7 +170,7 @@ export function TotalsPdf({ m, s }: { m: PaperModel; s: TotalsPdfStyle }) {
 }
 
 export function hasPaymentPdf(m: PaperModel, assets: PaperAssets) {
-  return m.payment.lines.length > 0 || !!(assets.qrDataUrl && m.payment.upiCaption);
+  return m.payment.lines.length > 0 || !!assets.qrDataUrl;
 }
 
 export function PaymentPdf({ m, assets, label, muted, title = "Payment details", qr = 22, color }: { m: PaperModel; assets: PaperAssets; label?: S; muted: string; title?: string; qr?: number; color?: string }) {
@@ -188,11 +188,10 @@ export function PaymentPdf({ m, assets, label, muted, title = "Payment details",
           ))}
         </View>
       )}
-      {assets.qrDataUrl && m.payment.upiCaption && (
+      {assets.qrDataUrl && (
         <View style={{ alignItems: "center", width: mm(qr + 6) }}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
           <Image src={assets.qrDataUrl} style={{ width: mm(qr), height: mm(qr), backgroundColor: "#fff", padding: mm(1) }} />
-          <Text style={{ fontSize: 6.5, color: muted, marginTop: mm(1), textAlign: "center" }}>{m.payment.upiCaption}</Text>
         </View>
       )}
     </View>

@@ -189,7 +189,7 @@ export function TotalsList({ m, s }: { m: PaperModel; s: TotalsStyle }) {
 }
 
 export function hasPayment(m: PaperModel, assets: PaperAssets) {
-  return m.payment.lines.length > 0 || !!(assets.qrDataUrl && m.payment.upiCaption);
+  return m.payment.lines.length > 0 || !!assets.qrDataUrl;
 }
 
 export function PaymentInfo({ m, assets, label, muted, title = "Payment details", qr = "22mm" }: { m: PaperModel; assets: PaperAssets; label?: CSSProperties; muted: string; title?: string; qr?: string }) {
@@ -207,11 +207,10 @@ export function PaymentInfo({ m, assets, label, muted, title = "Payment details"
           ))}
         </div>
       )}
-      {assets.qrDataUrl && m.payment.upiCaption && (
+      {assets.qrDataUrl && (
         <div style={{ flexShrink: 0, textAlign: "center" }}>
           {/* eslint-disable-next-line @next/next/no-img-element -- data URL */}
           <img src={assets.qrDataUrl} alt="UPI QR code" style={{ width: qr, height: qr, background: "#fff", padding: "1mm" }} />
-          <div style={{ fontSize: "7pt", color: muted, marginTop: "1mm", maxWidth: "30mm" }}>{m.payment.upiCaption}</div>
         </div>
       )}
     </div>
