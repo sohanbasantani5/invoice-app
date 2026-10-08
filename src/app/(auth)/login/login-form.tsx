@@ -57,6 +57,7 @@ function ModeForm({
 
   return (
     <div className="w-full max-w-sm">
+      <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.16em] text-accent">Invoice workspace</p>
       <h1 className="text-display">{copy.title}</h1>
       <p className="mt-1 text-ink-2">{copy.sub}</p>
 

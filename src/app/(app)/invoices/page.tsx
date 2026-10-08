@@ -116,7 +116,7 @@ async function InvoicesBody({
             )}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 md:grid-cols-3 xl:grid-cols-6">
           <Select name="status" defaultValue={filters.status} aria-label="Status">
             {STATUS_FILTERS.map((s) => (
               <option key={s.value} value={s.value}>

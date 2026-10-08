@@ -96,7 +96,7 @@ export function Sidebar({ businessName }: { businessName: string }) {
               className={cn(
                 item,
                 active
-                  ? "bg-accent-soft font-medium text-accent"
+                  ? "border-l-2 border-accent bg-accent-soft pl-2 font-medium text-accent"
                   : "text-ink-2 hover:bg-surface-2 hover:text-ink",
               )}
             >

@@ -19,7 +19,7 @@ const MONTHS = ["Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "
 
 function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "danger" }) {
   return (
-    <div className="rounded-xl border border-border bg-surface p-4 md:p-5">
+    <div className="border-l-2 border-border px-4 py-1 first:border-accent md:px-5">
       <p className="text-label text-ink-3">{label}</p>
       <p className={`tnum mt-2 font-heading text-[1.5rem] leading-tight font-semibold ${tone === "danger" ? "text-danger" : ""}`}>{value}</p>
       {hint && <p className="mt-1 text-caption">{hint}</p>}
@@ -77,7 +77,7 @@ async function DashboardData({ supabase, today }: { supabase: Awaited<ReturnType
         />
   ) : (
         <div className="flex flex-col gap-6">
-          <section aria-label="This financial year" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <section aria-label="This financial year" className="grid grid-cols-2 gap-y-5 border-y border-border py-5 lg:grid-cols-4 lg:gap-y-0">
             <Stat label="Invoiced this FY" value={formatMoney(invoiced)} hint={`${inr.length} invoice${inr.length === 1 ? "" : "s"}`} />
             <Stat label="Received" value={formatMoney(received)} />
             <Stat label="Outstanding" value={formatMoney(outstanding)} hint={`${(open ?? []).length} open`} />

@@ -11,10 +11,10 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const error = typeof sp.error === "string" ? sp.error.slice(0, 200) : undefined;
 
   return (
-    <main className="grid min-h-dvh lg:grid-cols-2">
+    <main className="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
       <section className="relative flex flex-col px-4 py-8 sm:px-10">
         <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2 font-heading text-[0.9375rem] font-semibold">
+          <span className="flex items-center gap-2 font-heading text-[0.9375rem] font-semibold tracking-tight">
             <span aria-hidden className="grid size-7 place-items-center rounded-lg bg-accent text-xs text-on-accent">
               ₹
             </span>

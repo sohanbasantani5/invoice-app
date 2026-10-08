@@ -167,7 +167,7 @@ export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
       )}
 
       {/* Desktop table — scrolls sideways on a narrow window instead of squashing */}
-      <div className="hidden rounded-xl border border-border bg-surface md:block">
+      <div className="hidden border-y border-border bg-surface md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[880px] text-sm">
             <caption className="sr-only">Invoices matching your filters</caption>

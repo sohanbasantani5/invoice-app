@@ -61,7 +61,7 @@ export function Field({
 }
 
 export const controlCls =
-  "h-10 w-full min-w-0 rounded-lg border border-border bg-surface px-3 text-[0.9375rem] text-ink transition-[border-color,box-shadow] duration-150 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60 aria-[invalid=true]:border-danger";
+  "h-10 w-full min-w-0 rounded-md border border-border bg-surface px-3 text-[0.9375rem] text-ink transition-[border-color,box-shadow] duration-150 outline-none focus:border-accent focus:ring-2 focus:ring-accent/30 disabled:opacity-60 aria-[invalid=true]:border-danger";
 
 export function Input({ className, ...props }: React.ComponentProps<"input">) {
   return <input className={cn(controlCls, className)} {...props} />;

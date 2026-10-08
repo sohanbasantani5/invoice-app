@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/shell/page-header";
-import { Card } from "@/components/ui/field";
 import {
   AddressTaxForm,
   BusinessForm,
@@ -30,11 +29,11 @@ type Tab = (typeof TABS)[number]["id"];
 
 function Section({ title, text, children }: { title: string; text?: string; children: React.ReactNode }) {
   return (
-    <Card className="p-5 md:p-6">
+    <section className="border-b border-border pb-8 last:border-b-0">
       <h2 className="text-h2">{title}</h2>
       {text && <p className="mt-1 text-sm text-ink-2">{text}</p>}
       <div className="mt-6">{children}</div>
-    </Card>
+    </section>
   );
 }
 
