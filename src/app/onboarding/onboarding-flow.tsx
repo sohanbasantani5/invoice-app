@@ -97,7 +97,7 @@ export function OnboardingFlow({
               <div className="flex flex-col gap-6">
                 <BusinessForm profile={seed} submitLabel="Continue" onSaved={next} extra={skip} />
                 <div className="border-t border-border pt-6">
-                  <BrandingUpload kind="logo" userId={userId} path={profile?.logo_path ?? null} label="Logo" hint="PNG or SVG, up to 1 MB. Shown top-left on invoices." />
+                  <BrandingUpload kind="logo" userId={userId} path={profile?.logo_path ?? null} label="Logo" hint="PNG or JPEG, up to 1 MB. Shown top-left on invoices." />
                 </div>
               </div>
             )}
@@ -118,3 +118,4 @@ export function OnboardingFlow({
     </main>
   );
 }
+

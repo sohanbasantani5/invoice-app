@@ -3,9 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getUser } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { decryptToken } from "@/lib/gmail/crypto";
 import { createDraft, GmailError, refreshAccessToken, revokeToken } from "@/lib/gmail/google";
 import { gmailDraftUrls } from "@/lib/invoice/email";
+import { rateLimit } from "@/lib/security/rate-limit";
+import { safeErrorInfo } from "@/lib/security/logging";
 import { buildMime, toBase64Url } from "@/lib/gmail/mime";
 
 export type DraftResult =
@@ -30,8 +33,11 @@ export async function createGmailDraft(input: z.input<typeof draftSchema>): Prom
   const v = parsed.data;
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: "Please sign in again." };
+  const limit = rateLimit(`gmail-draft:user:${user.id}`, 20, 10 * 60 * 1000);
+  if (!limit.ok) return { ok: false, error: "Too many Gmail drafts. Try again later." };
 
-  const { data: conn } = await supabase.from("gmail_connections").select("email, refresh_token_enc").maybeSingle();
+  const admin = createAdminClient();
+  const { data: conn } = await admin.from("gmail_connections").select("email, refresh_token_enc").eq("user_id", user.id).maybeSingle();
   if (!conn) return { ok: false, error: "Gmail isn't connected.", reconnect: true };
 
   try {
@@ -45,7 +51,7 @@ export async function createGmailDraft(input: z.input<typeof draftSchema>): Prom
     const urls = gmailDraftUrls(conn.email, messageId);
     return { ok: true, draftUrl: urls.draft, draftsUrl: urls.drafts };
   } catch (e) {
-    console.error("gmail draft failed", e instanceof Error ? e.message : e);
+    console.error("gmail draft failed", safeErrorInfo(e));
     if (e instanceof GmailError && e.reconnect) return { ok: false, error: "Gmail needs to be connected again.", reconnect: true };
     return { ok: false, error: "Gmail didn't accept the draft." };
   }
@@ -53,9 +59,10 @@ export async function createGmailDraft(input: z.input<typeof draftSchema>): Prom
 
 /** Forget the stored token and tell Google to revoke it. */
 export async function disconnectGmail(): Promise<{ ok: boolean; error?: string }> {
-  const { supabase, user } = await getUser();
+  const { user } = await getUser();
   if (!user) return { ok: false, error: "Please sign in again." };
-  const { data: conn } = await supabase.from("gmail_connections").select("refresh_token_enc").maybeSingle();
+  const admin = createAdminClient();
+  const { data: conn } = await admin.from("gmail_connections").select("refresh_token_enc").eq("user_id", user.id).maybeSingle();
   if (conn) {
     try {
       await revokeToken(decryptToken(conn.refresh_token_enc));
@@ -63,7 +70,7 @@ export async function disconnectGmail(): Promise<{ ok: boolean; error?: string }
       // token unreadable or already revoked: still remove our copy
     }
   }
-  const { error } = await supabase.from("gmail_connections").delete().eq("user_id", user.id);
+  const { error } = await admin.from("gmail_connections").delete().eq("user_id", user.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/settings");
   return { ok: true };

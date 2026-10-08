@@ -5,7 +5,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
-import { saveProfileSection } from "@/lib/actions/profile";
+import { saveProfileSection, uploadBrandingImage } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
 import {
@@ -25,7 +25,7 @@ export type SignatureChange = { path: string | null; url: string | null };
  * OFF → no upload UI; the invoice shows the electronic-document notice instead.
  */
 export function SignatureField({
-  userId,
+  userId: _userId,
   path,
   url,
   onChange,
@@ -36,6 +36,7 @@ export function SignatureField({
   onChange: (next: SignatureChange) => void;
 }) {
   const { register, control } = useFormContext<InvoiceFormValues>();
+  void _userId;
   const on = useWatch({ control, name: "show_signature" }) !== false;
   const input = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
@@ -44,10 +45,6 @@ export function SignatureField({
 
   function pick() {
     input.current?.click();
-  }
-
-  function persist(nextPath: string | null) {
-    return saveProfileSection("branding", { signature_path: nextPath });
   }
 
   function onFile(file: File | undefined) {
@@ -63,18 +60,10 @@ export function SignatureField({
         } else {
           setCleanedPreview(null);
         }
-        const ext = cleanup ? "png" : file.name.split(".").pop()?.toLowerCase() || "png";
-        const nextPath = `${userId}/signature-${Date.now()}.${ext}`;
-        const supabase = createClient();
-        const { error } = await supabase.storage
-          .from("branding")
-          .upload(nextPath, blob, { upsert: true, contentType: blob.type || file.type });
-        if (error) throw new Error(error.message);
-        const saved = await persist(nextPath);
+        const upload = new File([blob], cleanup ? "signature.png" : file.name, { type: blob.type || file.type });
+        const saved = await uploadBrandingImage("signature", upload, path);
         if (!saved.ok) throw new Error(saved.error);
-        if (path && path !== nextPath) await supabase.storage.from("branding").remove([path]);
-        const signed = await supabase.storage.from("branding").createSignedUrl(nextPath, 3600);
-        onChange({ path: nextPath, url: signed.data?.signedUrl ?? null });
+        onChange({ path: saved.path, url: saved.url });
         toast.success("Signature uploaded");
       } catch (e) {
         toast.error("Couldn't upload the signature. " + (e instanceof Error ? e.message : "Try again."));
@@ -84,7 +73,7 @@ export function SignatureField({
 
   function remove() {
     start(async () => {
-      const saved = await persist(null);
+      const saved = await saveProfileSection("branding", { signature_path: null });
       if (!saved.ok) return void toast.error(saved.error);
       if (path) await createClient().storage.from("branding").remove([path]);
       onChange({ path: null, url: null });

@@ -78,7 +78,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             </Section>
             <Section title="Logo & signature">
               <div className="flex flex-col gap-6">
-                <BrandingUpload kind="logo" userId={user.id} path={profile?.logo_path ?? null} label="Logo" hint="PNG or SVG, up to 1 MB." />
+                <BrandingUpload kind="logo" userId={user.id} path={profile?.logo_path ?? null} label="Logo" hint="PNG or JPEG, up to 1 MB." />
                 <BrandingUpload kind="signature" userId={user.id} path={profile?.signature_path ?? null} label="Signature" hint="PNG with a transparent background works best." />
               </div>
             </Section>
@@ -113,3 +113,4 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import { fetchAllInvoiceList } from "@/lib/invoice/list-query";
 import { invoiceSummary } from "@/lib/invoice/summary";
 import { buildInvoiceCsv, buildInvoiceXlsx, toExportRow } from "@/lib/invoice/export";
 import { buildReportModel } from "@/lib/invoice/report-model";
+import { rateLimit } from "@/lib/security/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,8 @@ const isFormat = (v: string): v is Format => v in FORMATS;
 export async function GET(request: NextRequest) {
   const { supabase, user } = await getSession();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
+  const limit = rateLimit(`invoice-export:user:${user.id}`, 30, 60 * 1000);
+  if (!limit.ok) return NextResponse.json({ error: "Too many exports. Try again later." }, { status: 429, headers: { "Retry-After": String(limit.retryAfter) } });
 
   const params = new URL(request.url).searchParams;
   const raw = params.get("format") ?? "";
