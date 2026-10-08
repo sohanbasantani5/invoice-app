@@ -4,7 +4,7 @@ import type { Database } from "@/types/database";
 import { timed } from "@/lib/perf";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./env";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/devharness"];
+const PUBLIC_PATHS = ["/login", "/auth", "/devharness", "/privacy", "/terms"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

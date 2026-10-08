@@ -1,6 +1,7 @@
 import { LoginForm } from "./login-form";
 import { IntroArt } from "./intro-art";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
+import Link from "next/link";
 
 export const metadata = { title: "Sign in" };
 
@@ -24,7 +25,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <div className="flex flex-1 items-center justify-center py-10">
           <LoginForm next={next} initialError={error} />
         </div>
-        <p className="text-center text-caption">GST-ready invoices for Indian freelancers.</p>
+        <div className="space-y-2 text-center"><p className="text-caption">GST-ready invoices for Indian freelancers.</p><p className="text-caption"><Link href="/privacy" className="hover:text-accent">Privacy</Link><span className="mx-2">·</span><Link href="/terms" className="hover:text-accent">Terms</Link></p></div>
       </section>
       <section className="hidden items-center justify-center border-l border-border bg-surface-2 p-12 lg:flex">
         <div className="w-full max-w-md">
