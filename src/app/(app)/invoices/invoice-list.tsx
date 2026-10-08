@@ -13,7 +13,10 @@ import dynamic from "next/dynamic";
 import type { DeletableInvoice } from "@/components/invoice/delete-invoices";
 import { changeStatus } from "@/lib/actions/invoice";
 import { booted } from "@/components/motion/boot";
+import { effectiveStatus } from "@/lib/invoice/status";
+import { tdsState, TDS_SHORT_LABELS, type TdsState } from "@/lib/invoice/tds";
 import { formatDate, formatMoney } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { InvoiceStatus } from "@/types/database";
 
 export type ListInvoice = {
@@ -24,6 +27,9 @@ export type ListInvoice = {
   dueDate: string | null;
   status: InvoiceStatus;
   totalPaise: number;
+  receivedPaise: number;
+  tdsPaise: number;
+  tdsRate: number;
   balancePaise: number;
   currency: string;
 };
@@ -40,6 +46,8 @@ const firstLoad = (i: number) =>
 
 /** Drafts open straight in the editor; everything else opens the read-only view. */
 const openHref = (inv: ListInvoice) => (inv.status === "draft" ? `/invoices/${inv.id}/edit` : `/invoices/${inv.id}`);
+const settled = (inv: ListInvoice) => inv.status === "draft" || inv.status === "cancelled";
+const STATE_TONE: Record<TdsState, string> = { none: "text-ink-3", pending: "text-warning", accounted: "text-success" };
 
 export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
   const router = useRouter();
@@ -138,6 +146,10 @@ export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
     </Menu>
   );
 
+  const money = (paise: number, currency: string, className?: string) => (
+    <span className={cn("tnum", className)}>{formatMoney(Math.max(0, paise), currency)}</span>
+  );
+
   return (
     <>
       {chosen.length > 0 && (
@@ -154,91 +166,146 @@ export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
         </div>
       )}
 
-      {/* Desktop table */}
-      <div className="hidden overflow-hidden rounded-xl border border-border bg-surface md:block">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-surface-2 text-left text-xs text-ink-3">
-            <tr>
-              <th className="w-10 py-2.5 pl-4">
-                <input
-                  type="checkbox"
-                  checked={allChosen}
-                  onChange={() => setSelected(allChosen ? new Set() : new Set(rows.map((r) => r.id)))}
-                  aria-label="Select all invoices"
-                  className="size-4 cursor-pointer accent-[var(--accent)]"
-                />
-              </th>
-              <th className="px-4 py-2.5 font-medium">Number</th>
-              <th className="px-4 py-2.5 font-medium">Client</th>
-              <th className="px-4 py-2.5 font-medium">Date</th>
-              <th className="px-4 py-2.5 font-medium">Due</th>
-              <th className="px-4 py-2.5 font-medium">Status</th>
-              <th className="px-4 py-2.5 text-right font-medium">Amount</th>
-              <th className="px-4 py-2.5 text-right font-medium">Balance</th>
-              <th className="w-20 px-2 py-2.5">
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((inv, i) => (
-              <m.tr key={inv.id} {...firstLoad(i)} className={`border-t border-border hover:bg-surface-2/60 ${selected.has(inv.id) ? "bg-accent-soft/50" : ""}`}>
-                <td className="w-10 py-3 pl-4">{checkbox(inv)}</td>
-                <td className="px-4 py-3 font-mono text-[0.8125rem]">
-                  <Link href={openHref(inv)} className="hover:text-accent hover:underline">
-                    {inv.number}
-                  </Link>
-                </td>
-                <td className="max-w-56 truncate px-4 py-3">
-                  <Link href={openHref(inv)} className="hover:text-accent">
-                    {inv.client}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-ink-2">{formatDate(inv.issueDate)}</td>
-                <td className="px-4 py-3 whitespace-nowrap text-ink-2">{formatDate(inv.dueDate) || "—"}</td>
-                <td className="px-4 py-3">
-                  <StatusPill status={inv.status} dueDate={inv.dueDate} />
-                </td>
-                <td className="tnum px-4 py-3 text-right whitespace-nowrap">{formatMoney(inv.totalPaise, inv.currency)}</td>
-                <td className="tnum px-4 py-3 text-right whitespace-nowrap text-ink-2">
-                  {inv.status === "draft" || inv.status === "cancelled" ? "—" : formatMoney(Math.max(0, inv.balancePaise), inv.currency)}
-                </td>
-                <td className="px-2 py-2 text-right">
-                  <div className="flex items-center justify-end gap-0.5">
-                    {inv.status !== "cancelled" && (
-                      <Link href={`/invoices/${inv.id}/edit`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Edit ${inv.number}`} title="Edit">
-                        <Pencil aria-hidden />
+      {/* Desktop table — scrolls sideways on a narrow window instead of squashing */}
+      <div className="hidden rounded-xl border border-border bg-surface md:block">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[880px] text-sm">
+            <caption className="sr-only">Invoices matching your filters</caption>
+            <thead className="sticky top-0 bg-surface-2 text-left text-xs text-ink-3">
+              <tr>
+                <th className="w-10 py-2.5 pl-4">
+                  <input
+                    type="checkbox"
+                    checked={allChosen}
+                    onChange={() => setSelected(allChosen ? new Set() : new Set(rows.map((r) => r.id)))}
+                    aria-label="Select all invoices"
+                    className="size-4 cursor-pointer accent-[var(--accent)]"
+                  />
+                </th>
+                <th className="px-3 py-2.5 font-medium">Invoice</th>
+                <th className="px-3 py-2.5 font-medium">Client</th>
+                <th className="px-3 py-2.5 font-medium">Date</th>
+                <th className="px-3 py-2.5 font-medium">Status</th>
+                <th className="px-3 py-2.5 text-right font-medium">Amount</th>
+                <th className="px-3 py-2.5 text-right font-medium">TDS</th>
+                <th className="px-3 py-2.5 text-right font-medium">Received</th>
+                <th className="px-3 py-2.5 text-right font-medium">Balance</th>
+                <th className="w-20 px-2 py-2.5">
+                  <span className="sr-only">Actions</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((inv, i) => {
+                const state = tdsState(inv.tdsPaise, inv.status);
+                const overdue = effectiveStatus(inv.status, inv.dueDate) === "overdue";
+                return (
+                  <m.tr key={inv.id} {...firstLoad(i)} className={`border-t border-border hover:bg-surface-2/60 ${selected.has(inv.id) ? "bg-accent-soft/50" : ""}`}>
+                    <td className="w-10 py-3 pl-4">{checkbox(inv)}</td>
+                    <td className="px-3 py-3 font-mono text-[0.8125rem] whitespace-nowrap">
+                      <Link href={openHref(inv)} className="hover:text-accent hover:underline">
+                        {inv.number}
                       </Link>
-                    )}
-                    {actions(inv)}
-                  </div>
-                </td>
-              </m.tr>
-            ))}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="max-w-52 truncate px-3 py-3">
+                      <Link href={openHref(inv)} className="hover:text-accent">
+                        {inv.client}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-ink-2">
+                      {formatDate(inv.issueDate)}
+                      {inv.dueDate && (
+                        <span className={cn("block text-[11px]", overdue ? "text-danger" : "text-ink-3")}>Due {formatDate(inv.dueDate)}</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                    </td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">{money(inv.totalPaise, inv.currency)}</td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
+                      {state === "none" ? (
+                        <span className="text-ink-3">—</span>
+                      ) : (
+                        <>
+                          <div className="tnum">{formatMoney(inv.tdsPaise, inv.currency)}</div>
+                          <div className={cn("text-[11px]", STATE_TONE[state])}>
+                            {inv.tdsRate}% · {TDS_SHORT_LABELS[state]}
+                          </div>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">{settled(inv) ? <span className="text-ink-3">—</span> : money(inv.receivedPaise, inv.currency)}</td>
+                    <td className="px-3 py-3 text-right whitespace-nowrap">
+                      {settled(inv) ? <span className="text-ink-3">—</span> : money(inv.balancePaise, inv.currency, overdue ? "text-danger" : "text-ink-2")}
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {inv.status !== "cancelled" && (
+                          <Link href={`/invoices/${inv.id}/edit`} className={buttonVariants({ variant: "ghost", size: "icon-sm" })} aria-label={`Edit ${inv.number}`} title="Edit">
+                            <Pencil aria-hidden />
+                          </Link>
+                        )}
+                        {actions(inv)}
+                      </div>
+                    </td>
+                  </m.tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Mobile cards */}
       <ul className="flex flex-col gap-2 md:hidden">
-        {rows.map((inv, i) => (
-          <m.li key={inv.id} {...firstLoad(i)} className="flex items-center gap-2 rounded-xl border border-border bg-surface p-3">
-            {checkbox(inv)}
-            <Link href={openHref(inv)} className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium">{inv.client}</span>
-                <span className="tnum shrink-0 font-medium">{formatMoney(inv.totalPaise, inv.currency)}</span>
+        {rows.map((inv, i) => {
+          const state = tdsState(inv.tdsPaise, inv.status);
+          const overdue = effectiveStatus(inv.status, inv.dueDate) === "overdue";
+          return (
+            <m.li key={inv.id} {...firstLoad(i)} className="rounded-xl border border-border bg-surface p-3">
+              <div className="flex items-start gap-2">
+                <div className="pt-1">{checkbox(inv)}</div>
+                <Link href={openHref(inv)} className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium">{inv.client}</span>
+                    <span className="tnum shrink-0 font-medium">{formatMoney(inv.totalPaise, inv.currency)}</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="truncate font-mono text-xs text-ink-3">
+                      {inv.number} · {formatDate(inv.issueDate)}
+                    </span>
+                    <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                  </div>
+                </Link>
+                <div className="-mt-1 -mr-1">{actions(inv)}</div>
               </div>
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <span className="truncate font-mono text-xs text-ink-3">
-                  {inv.number} · {formatDate(inv.issueDate)}
-                </span>
-                <StatusPill status={inv.status} dueDate={inv.dueDate} />
-              </div>
-            </Link>
-            {actions(inv)}
-          </m.li>
-        ))}
+              {!settled(inv) && (
+                <dl className="mt-2 grid grid-cols-3 gap-2 border-t border-border pt-2 text-xs">
+                  <div>
+                    <dt className="text-ink-3">Received</dt>
+                    <dd className="tnum mt-0.5">{formatMoney(inv.receivedPaise, inv.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-3">Balance</dt>
+                    <dd className={cn("tnum mt-0.5", overdue ? "text-danger" : "")}>{formatMoney(Math.max(0, inv.balancePaise), inv.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-ink-3">TDS</dt>
+                    <dd className="mt-0.5">
+                      {state === "none" ? (
+                        <span className="text-ink-3">—</span>
+                      ) : (
+                        <span className={STATE_TONE[state]}>
+                          {formatMoney(inv.tdsPaise, inv.currency)} · {TDS_SHORT_LABELS[state]}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              )}
+            </m.li>
+          );
+        })}
       </ul>
 
       {deleting && (

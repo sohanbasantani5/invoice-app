@@ -27,7 +27,7 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("invoices")
-      .select("id, invoice_number, issue_date, due_date, status, total_paise, tds_paise, amount_paid_paise, currency, buyer")
+      .select("id, invoice_number, issue_date, due_date, status, total_paise, tds_rate, tds_paise, amount_paid_paise, currency, buyer")
       .eq("client_id", id)
       .order("issue_date", { ascending: false }),
   ]);
@@ -41,6 +41,9 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     dueDate: r.due_date,
     status: r.status,
     totalPaise: r.total_paise,
+    receivedPaise: r.amount_paid_paise,
+    tdsPaise: r.tds_paise,
+    tdsRate: Number(r.tds_rate),
     balancePaise: r.total_paise - r.tds_paise - r.amount_paid_paise,
     currency: r.currency,
   }));
