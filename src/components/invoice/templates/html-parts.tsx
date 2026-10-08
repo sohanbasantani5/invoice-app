@@ -246,15 +246,17 @@ export function SignatureArea({ m, assets, color, muted, rule, align = "flex-end
   if (!s.enabled) return <p style={{ fontSize: "8pt", color: muted, breakInside: "avoid", ...noticeStyle }}>{s.notice}</p>;
   return (
     <div style={{ display: "flex", justifyContent: align, breakInside: "avoid" }}>
-      <div style={{ width: "56mm", textAlign: "center", color: color ?? muted }}>
-        <div style={{ fontSize: "8pt", ...wrap }}>{s.forLine}</div>
-        <div style={{ height: "16mm", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: "50mm", textAlign: "center", color: color ?? muted }}>
+        <div style={{ fontSize: "7.5pt", letterSpacing: "0.06em", color: muted, ...wrap }}>{s.forLine}</div>
+        <div style={{ height: "12mm", display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "1mm 0 0.8mm" }}>
           {assets.signatureUrl && (
             // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-            <img src={assets.signatureUrl} alt="Signature" style={{ maxHeight: "14mm", maxWidth: "46mm", objectFit: "contain" }} />
+            <img src={assets.signatureUrl} alt="Signature" style={{ maxHeight: "10mm", maxWidth: "36mm", objectFit: "contain" }} />
           )}
         </div>
-        <div style={{ borderTop: `1px solid ${rule}`, paddingTop: "1mm", fontSize: "8pt", color: muted }}>Authorised signatory</div>
+        <div style={{ borderTop: `1px solid ${rule}`, paddingTop: "1mm", fontSize: "7.5pt", letterSpacing: "0.08em", fontWeight: 500, color: muted }}>
+          Authorised signatory
+        </div>
       </div>
     </div>
   );

@@ -23,16 +23,16 @@ export function SignatureBlock({ model: m, assets }: { model: PaperModel; assets
   }
 
   return (
-    <div className="mt-auto flex justify-end pt-[10mm]">
-      <div className="text-center" style={{ minWidth: "50mm" }}>
-        <div style={{ fontSize: `${t.small}pt`, color: t.ink2 }}>{s.forLine}</div>
-        <div className="grid place-items-center" style={{ height: "16mm" }}>
+    <div className="mt-auto flex justify-end pt-[7mm]">
+      <div className="text-center" style={{ width: "50mm" }}>
+        <div style={{ fontSize: `${t.tiny}pt`, letterSpacing: "0.06em", color: t.ink3 }}>{s.forLine}</div>
+        <div className="flex items-end justify-center" style={{ height: "12mm", padding: "1mm 0 0.8mm" }}>
           {assets.signatureUrl && (
             // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-            <img src={assets.signatureUrl} alt="" style={{ maxHeight: "14mm", maxWidth: "45mm" }} className="object-contain" />
+            <img src={assets.signatureUrl} alt="" style={{ maxHeight: "10mm", maxWidth: "36mm" }} className="object-contain" />
           )}
         </div>
-        <div style={{ borderTop: `1px solid ${t.rule}`, paddingTop: "1mm", fontSize: `${t.small}pt`, color: t.ink2 }}>
+        <div style={{ borderTop: `1px solid ${t.rule}`, paddingTop: "1mm", fontSize: `${t.tiny}pt`, letterSpacing: "0.08em", fontWeight: 500, color: t.ink2 }}>
           Authorised signatory
         </div>
       </div>

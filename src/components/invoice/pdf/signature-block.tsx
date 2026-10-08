@@ -24,16 +24,16 @@ export function SignatureBlock({ model: m, assets }: { model: PaperModel; assets
   }
 
   return (
-    <View style={{ marginTop: "auto", paddingTop: mm(10), alignItems: "flex-end" }} wrap={false}>
-      <View style={{ width: mm(55), alignItems: "center" }}>
-        <Text style={{ fontSize: t.small, color: t.ink2 }}>{s.forLine}</Text>
-        <View style={{ height: mm(16), justifyContent: "center" }}>
+    <View style={{ marginTop: "auto", paddingTop: mm(7), alignItems: "flex-end" }} wrap={false}>
+      <View style={{ width: mm(50), alignItems: "center" }}>
+        <Text style={{ fontSize: t.tiny, letterSpacing: 0.45, color: t.ink3, textAlign: "center" }}>{s.forLine}</Text>
+        <View style={{ height: mm(12), justifyContent: "flex-end", paddingTop: mm(1), paddingBottom: mm(0.8) }}>
           {assets.signatureUrl && (
             // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt
-            <Image src={assets.signatureUrl} style={{ maxHeight: mm(14), maxWidth: mm(45), objectFit: "contain" }} />
+            <Image src={assets.signatureUrl} style={{ maxHeight: mm(10), maxWidth: mm(36), objectFit: "contain" }} />
           )}
         </View>
-        <Text style={{ width: "100%", textAlign: "center", borderTopWidth: 1, borderColor: t.rule, paddingTop: mm(1), fontSize: t.small, color: t.ink2 }}>
+        <Text style={{ width: "100%", textAlign: "center", borderTopWidth: 1, borderColor: t.rule, paddingTop: mm(1), fontSize: t.tiny, letterSpacing: 0.6, fontWeight: 500, color: t.ink2 }}>
           Authorised signatory
         </Text>
       </View>

@@ -1,31 +1,14 @@
-import { Document, Font, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { Document, Image, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { PaperModel, PaperParty } from "@/lib/invoice/paper-model";
 import { templateTokens as t } from "@/lib/invoice/template-tokens";
 import type { PaperAssets } from "../preview/invoice-paper";
 import { SignatureBlock } from "../pdf/signature-block";
-
-let registered = false;
-function registerFonts() {
-  if (registered) return;
-  registered = true;
-  const base = typeof window !== "undefined" ? window.location.origin : "";
-  Font.register({
-    family: "Inter",
-    fonts: [
-      { src: `${base}/fonts/Inter-400.ttf`, fontWeight: 400 },
-      { src: `${base}/fonts/Inter-500.ttf`, fontWeight: 500 },
-      { src: `${base}/fonts/Inter-600.ttf`, fontWeight: 600 },
-    ],
-  });
-  // Substitute Georgia with a standard serif font in PDF or just use a built-in serif font like Times-Roman
-  Font.register({ family: "JetBrains Mono", src: `${base}/fonts/JetBrainsMono-400.ttf` });
-  Font.registerHyphenationCallback((w) => [w]);
-}
+import { registerPdfFonts } from "./pdf-parts";
 
 const mm = (n: number) => n * 2.8346;
 
 const s = StyleSheet.create({
-  page: { padding: mm(t.marginMm), fontFamily: "Times-Roman", fontSize: t.base, color: "#4a3c3d", lineHeight: 1.5, backgroundColor: "#fff5f7" },
+  page: { padding: mm(t.marginMm), fontFamily: "Inter", fontSize: t.base, color: "#4a3c3d", lineHeight: 1.5, backgroundColor: "#fff5f7" },
   row: { flexDirection: "row" },
   mono: { fontFamily: "JetBrains Mono", fontSize: t.small },
   label: { fontSize: t.tiny, color: "#b36b76", letterSpacing: 0.6, textTransform: "uppercase" },
@@ -55,7 +38,7 @@ function Party({ p }: { p: PaperParty }) {
 }
 
 export function RosePdf({ model: m, assets = {} }: { model: PaperModel; assets?: PaperAssets }) {
-  registerFonts();
+  registerPdfFonts();
   const cols = [
     { key: "n", label: "#", w: mm(7), align: "left" as const },
     { key: "desc", label: "Description", w: 0, align: "left" as const },
@@ -88,7 +71,7 @@ export function RosePdf({ model: m, assets = {} }: { model: PaperModel; assets?:
         <View style={{ alignItems: "center", borderBottom: "1px solid #ffe4e8", paddingBottom: mm(5) }}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
           {assets.logoUrl && <Image src={assets.logoUrl} style={{ maxHeight: 30, maxWidth: mm(50), objectFit: "contain", marginBottom: mm(4) }} />}
-          <Text style={{ fontSize: t.title, fontWeight: "bold", fontFamily: "Times-Roman" }}>{m.seller.name}</Text>
+          <Text style={{ fontSize: t.title, fontWeight: "bold", fontFamily: "Playfair Display" }}>{m.seller.name}</Text>
           {m.seller.legalName && <Text style={[s.textMuted, { fontFamily: "Inter", fontSize: t.small }]}>{m.seller.legalName}</Text>}
           
           <View style={[s.row, { flexWrap: "wrap", justifyContent: "center", marginTop: mm(1) }]}>
@@ -100,8 +83,8 @@ export function RosePdf({ model: m, assets = {} }: { model: PaperModel; assets?:
           </View>
           
           <View style={{ alignItems: "center", marginTop: mm(4) }}>
-            <Text style={{ color: "#c76574", fontSize: 10, letterSpacing: 2, fontWeight: "bold", fontFamily: "Inter", textTransform: "uppercase" }}>{m.title}</Text>
-            <Text style={{ fontSize: t.number, fontWeight: "bold", marginTop: mm(1), fontFamily: "Times-Roman" }}>{m.number}</Text>
+            <Text style={{ color: "#c76574", fontSize: 10, letterSpacing: 2, fontWeight: "bold", fontFamily: "Playfair Display", textTransform: "uppercase" }}>{m.title}</Text>
+            <Text style={{ fontSize: t.number, fontWeight: "bold", marginTop: mm(1), fontFamily: "Playfair Display" }}>{m.number}</Text>
           </View>
         </View>
 
@@ -161,7 +144,7 @@ export function RosePdf({ model: m, assets = {} }: { model: PaperModel; assets?:
             {m.words && (
               <View style={{ marginBottom: mm(4) }}>
                 <Text style={[s.th, { fontFamily: "Inter" }]}>Total in words</Text>
-                <Text style={{ fontWeight: 600, fontFamily: "Inter", fontSize: t.small }}>{m.words}</Text>
+                <Text style={{ fontWeight: 600, fontFamily: "Playfair Display", fontSize: t.small }}>{m.words}</Text>
               </View>
             )}
             {(m.payment.lines.length > 0 || m.payment.upiText) && (

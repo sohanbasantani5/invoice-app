@@ -40,6 +40,22 @@ export function registerPdfFonts() {
     ],
   });
   Font.register({ family: "JetBrains Mono", src: `${base}/fonts/JetBrainsMono-400.ttf` });
+  // Display serif for the classic/elegant templates. These are the SAME files the HTML preview
+  // loads via @font-face in globals.css, registered under the identical family name, so preview
+  // and PDF stay in step.
+  Font.register({
+    family: "Playfair Display",
+    fonts: [
+      { src: `${base}/fonts/PlayfairDisplay-500.ttf`, fontWeight: 400 },
+      { src: `${base}/fonts/PlayfairDisplay-500.ttf`, fontWeight: 500 },
+      { src: `${base}/fonts/PlayfairDisplay-600.ttf`, fontWeight: 600 },
+      { src: `${base}/fonts/PlayfairDisplay-700.ttf`, fontWeight: 700 },
+      { src: `${base}/fonts/PlayfairDisplay-Italic-500.ttf`, fontWeight: 400, fontStyle: "italic" },
+      { src: `${base}/fonts/PlayfairDisplay-Italic-500.ttf`, fontWeight: 500, fontStyle: "italic" },
+      { src: `${base}/fonts/PlayfairDisplay-Italic-500.ttf`, fontWeight: 600, fontStyle: "italic" },
+      { src: `${base}/fonts/PlayfairDisplay-Italic-500.ttf`, fontWeight: 700, fontStyle: "italic" },
+    ],
+  });
   Font.registerHyphenationCallback((w) => [w]);
 }
 
@@ -229,13 +245,13 @@ export function SignaturePdf({ m, assets, color, muted, rule, align = "flex-end"
     );
   return (
     <View style={{ alignItems: align }} wrap={false}>
-      <View style={{ width: mm(56), alignItems: "center" }}>
-        <Text style={{ fontSize: 8, color: color ?? muted, textAlign: "center" }}>{s.forLine}</Text>
-        <View style={{ height: mm(16), justifyContent: "center" }}>
+      <View style={{ width: mm(50), alignItems: "center" }}>
+        <Text style={{ fontSize: 7.5, letterSpacing: 0.45, color: muted, textAlign: "center" }}>{s.forLine}</Text>
+        <View style={{ height: mm(12), justifyContent: "flex-end", paddingTop: mm(1), paddingBottom: mm(0.8) }}>
           {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf Image has no alt */}
-          {assets.signatureUrl && <Image src={assets.signatureUrl} style={{ maxHeight: mm(14), maxWidth: mm(46), objectFit: "contain" }} />}
+          {assets.signatureUrl && <Image src={assets.signatureUrl} style={{ maxHeight: mm(10), maxWidth: mm(36), objectFit: "contain" }} />}
         </View>
-        <Text style={{ width: "100%", textAlign: "center", borderTopWidth: 1, borderColor: rule, paddingTop: mm(1), fontSize: 8, color: muted }}>Authorised signatory</Text>
+        <Text style={{ width: "100%", textAlign: "center", borderTopWidth: 1, borderColor: rule, paddingTop: mm(1), fontSize: 7.5, letterSpacing: 0.6, fontWeight: 500, color: muted }}>Authorised signatory</Text>
       </View>
     </View>
   );

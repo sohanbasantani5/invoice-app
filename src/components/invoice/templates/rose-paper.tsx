@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PaperModel, PaperParty } from "@/lib/invoice/paper-model";
-import { templateTokens as t } from "@/lib/invoice/template-tokens";
+import { fontStack, templateTokens as t } from "@/lib/invoice/template-tokens";
 import { SignatureBlock } from "../preview/signature-block";
 
 export type PaperAssets = { logoUrl?: string | null; signatureUrl?: string | null; qrDataUrl?: string | null };
@@ -60,7 +60,7 @@ export function RosePaper({ model: m, assets = {}, highlight = false }: { model:
         color: "#4a3c3d",
         fontSize: `${t.base}pt`,
         lineHeight: 1.5,
-        fontFamily: 'Georgia, serif'
+        fontFamily: fontStack.sans
       }}
     >
       {m.cancelled && (
@@ -77,7 +77,7 @@ export function RosePaper({ model: m, assets = {}, highlight = false }: { model:
           {assets.logoUrl && (
             <img src={assets.logoUrl} alt="" style={{ maxHeight: "40px", maxWidth: "50mm" }} className="mb-[4mm] object-contain" />
           )}
-          <div style={{ fontSize: `${t.title}pt`, fontWeight: 600, lineHeight: 1.2, color: "#4a3c3d" }}>
+          <div style={{ fontFamily: fontStack.serif, fontSize: `${t.title}pt`, fontWeight: 600, lineHeight: 1.15, color: "#4a3c3d", letterSpacing: "-0.005em" }}>
             {m.seller.name}
           </div>
           {m.seller.legalName && <div style={{ color: "#7a6a6b" }}>{m.seller.legalName}</div>}
@@ -87,8 +87,8 @@ export function RosePaper({ model: m, assets = {}, highlight = false }: { model:
             ))}
           </div>
           <div className="mt-4 flex flex-col items-center">
-            <div style={{ color: "#c76574", fontSize: "10pt", letterSpacing: "0.2em", fontWeight: 600, textTransform: "uppercase" }}>{m.title}</div>
-            <div style={{ fontSize: `${t.number}pt`, fontWeight: 600, marginTop: "1mm", color: "#4a3c3d" }}>
+            <div style={{ fontFamily: fontStack.serif, color: "#c76574", fontSize: "10pt", letterSpacing: "0.2em", fontWeight: 600, textTransform: "uppercase" }}>{m.title}</div>
+            <div style={{ fontFamily: fontStack.serif, fontSize: `${t.number}pt`, fontWeight: 600, marginTop: "1mm", color: "#4a3c3d" }}>
               {m.number}
             </div>
           </div>
@@ -167,8 +167,8 @@ export function RosePaper({ model: m, assets = {}, highlight = false }: { model:
         <div className="min-w-0 flex-1">
           {m.words && (
             <div className="mb-[4mm]">
-              <div style={th}>Total in words</div>
-              <div style={{ fontWeight: 500, color: "#4a3c3d" }}>{m.words}</div>
+              <div style={{ ...th }}>Total in words</div>
+              <div style={{ fontFamily: fontStack.serif, fontWeight: 600, color: "#4a3c3d" }}>{m.words}</div>
             </div>
           )}
           {(m.payment.lines.length > 0 || m.payment.upiText) && (

@@ -22,12 +22,12 @@ export function ElegantPdf({ model: m, assets = {} }: PdfTemplateProps) {
               <View style={[row, { justifyContent: "space-between", alignItems: "flex-start", paddingBottom: mm(5), borderBottomWidth: 2, borderColor: C.ink }]}>
                 <View style={{ flex: 1, paddingRight: mm(8) }}>
                   {assets.logoUrl && <LogoPdf url={assets.logoUrl} style={{ marginBottom: mm(3) }} />}
-                  <Text style={{ fontFamily: "Instrument Sans", fontWeight: 600, fontSize: 18, color: C.ink }}>{m.seller.name}</Text>
+                  <Text style={{ fontFamily: "Playfair Display", fontWeight: 700, fontSize: 19, color: C.ink, letterSpacing: -0.2, lineHeight: 1.12 }}>{m.seller.name}</Text>
                   <SellerLinesPdf m={m} color={C.muted} style={{ fontSize: 8, marginTop: mm(1.5) }} />
                 </View>
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ fontSize: 14, fontWeight: 600, color: C.accent, letterSpacing: 1.5, textTransform: "uppercase" }}>{m.title}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: 600, color: C.ink, marginTop: mm(2) }}>Nº {m.number}</Text>
+                  <Text style={{ fontFamily: "Playfair Display", fontSize: 13, fontWeight: 700, color: C.accent, letterSpacing: 1.8, textTransform: "uppercase" }}>{m.title}</Text>
+                  <Text style={{ fontSize: 10.5, fontWeight: 600, color: C.ink, marginTop: mm(2), letterSpacing: 0.2 }}>Nº {m.number}</Text>
                 </View>
               </View>
 
@@ -43,8 +43,8 @@ export function ElegantPdf({ model: m, assets = {} }: PdfTemplateProps) {
 
               {/* Parties */}
               <View style={[row, { marginTop: mm(6) }]} wrap={false}>
-                <PartyPdf p={m.billTo} label={label} name={{ fontSize: 10.5, color: C.ink }} muted={C.muted} style={{ flex: 1.5, paddingRight: mm(6) }} />
-                {m.shipTo && <PartyPdf p={m.shipTo} label={label} name={{ color: C.ink }} muted={C.muted} style={{ flex: 1 }} />}
+                <PartyPdf p={m.billTo} label={label} name={{ fontFamily: "Playfair Display", fontSize: 11, color: C.ink }} muted={C.muted} style={{ flex: 1.5, paddingRight: mm(6) }} />
+                {m.shipTo && <PartyPdf p={m.shipTo} label={label} name={{ fontFamily: "Playfair Display", color: C.ink }} muted={C.muted} style={{ flex: 1 }} />}
               </View>
 
               {/* Items */}
@@ -66,7 +66,7 @@ export function ElegantPdf({ model: m, assets = {} }: PdfTemplateProps) {
               <View style={[row, { marginTop: mm(6), alignItems: "flex-start" }]} wrap={false}>
                 <View style={{ flex: 1, paddingRight: mm(8) }}>
                   <Text style={label}>Amount in words</Text>
-                  <Text style={{ fontWeight: 600, marginBottom: mm(4), fontStyle: "italic", color: C.ink }}>{m.words}</Text>
+                  <Text style={{ fontFamily: "Playfair Display", fontWeight: 600, marginBottom: mm(4), fontStyle: "italic", color: C.ink }}>{m.words}</Text>
                   <PaymentPdf m={m} assets={assets} label={label} muted={C.muted} />
                 </View>
                 <View style={{ padding: mm(3), borderWidth: 1, borderColor: C.rule, backgroundColor: C.soft }}>

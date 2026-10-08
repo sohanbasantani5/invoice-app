@@ -40,6 +40,7 @@ export function SignatureField({
   const input = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
   const [cleanup, setCleanup] = useState(false);
+  const [cleanedPreview, setCleanedPreview] = useState<string | null>(null);
 
   function pick() {
     input.current?.click();
@@ -57,6 +58,11 @@ export function SignatureField({
     start(async () => {
       try {
         const blob = cleanup ? await removeLightBackground(file) : file;
+        if (cleanup) {
+          setCleanedPreview(URL.createObjectURL(blob));
+        } else {
+          setCleanedPreview(null);
+        }
         const ext = cleanup ? "png" : file.name.split(".").pop()?.toLowerCase() || "png";
         const nextPath = `${userId}/signature-${Date.now()}.${ext}`;
         const supabase = createClient();
@@ -108,9 +114,9 @@ export function SignatureField({
             className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-dashed border-border-strong bg-surface text-ink-3 hover:border-accent hover:text-accent"
             aria-label="Upload signature"
           >
-            {url ? (
-              // eslint-disable-next-line @next/next/no-img-element -- signed URL from private storage
-              <img src={url} alt="" className="max-h-full max-w-full object-contain p-1" />
+            {cleanedPreview || url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- signed URL/blob preview from private storage
+              <img src={cleanedPreview || url || ""} alt="" className="max-h-full max-w-full object-contain p-1" />
             ) : (
               <ImagePlus className="size-5 stroke-[1.5]" aria-hidden />
             )}
@@ -127,6 +133,7 @@ export function SignatureField({
               />
               Remove white background (best effort, for photos)
             </label>
+            {cleanedPreview && <p className="mt-1 text-[11px] text-accent">Cleaned preview · transparent PNG</p>}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button type="button" variant="secondary" size="sm" onClick={pick} disabled={pending}>

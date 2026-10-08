@@ -49,6 +49,40 @@
   color-scheme: dark;
 }
 
+/* Playfair Display — the display serif for the classic/elegant invoice templates.
+   Self-hosted static instances in public/fonts. The PDF registers these SAME files under the
+   same family name (see components/invoice/templates/pdf-parts.tsx), so the live preview and
+   the downloaded document render identical type. Exempt from the auth proxy by the `fonts/`
+   path matcher, so both HTML and @react-pdf can fetch them unauthenticated. */
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-500.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-600.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-700.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/PlayfairDisplay-Italic-500.ttf") format("truetype");
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
@@ -185,6 +219,14 @@ html.lenis body {
   z-index: 0;
 }
 .invoice-paper > * { position: relative; }
+.invoice-paper {
+  font-feature-settings: "tnum" 1, "cv11" 1;
+  text-rendering: optimizeLegibility;
+}
+.invoice-paper table { letter-spacing: 0.005em; }
+.invoice-paper th { font-size: 7.5pt; font-weight: 600; }
+.invoice-paper td { font-size: 9pt; }
+.invoice-paper td:first-child { color: var(--ink-3); }
 
 @media print {
   @page { size: A4; margin: 0; }
