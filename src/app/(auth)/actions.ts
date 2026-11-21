@@ -1,4 +1,4 @@
-"use server";
+﻿"use server";
 
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
@@ -26,11 +26,21 @@ function safeNext(v: FormDataEntryValue | null): string {
 
 function friendly(message: string): string {
   const m = message.toLowerCase();
-  if (m.includes("invalid") || m.includes("wrong") || m.includes("credentials")) return "That email and password don't match. Try again or use a magic link.";
-  if (m.includes("not confirmed") || m.includes("verify")) return "Please confirm your email first — check your inbox for the link.";
-  if (m.includes("already") || m.includes("exists")) return "An account with this email already exists. Sign in instead.";
-  if (m.includes("rate") || m.includes("too many")) return "Too many attempts. Please wait a minute and try again.";
-  if (m.includes("weak") || m.includes("strong")) return "Please choose a stronger password (8+ characters, mix letters and numbers).";
+  if (m.includes("invalid") || m.includes("wrong") || m.includes("credentials")) {
+    return "That email and password don't match. Try again or use a magic link.";
+  }
+  if (m.includes("not confirmed") || m.includes("verify")) {
+    return "Please confirm your email first — check your inbox for the link.";
+  }
+  if (m.includes("already") || m.includes("exists")) {
+    return "An account with this email already exists. Sign in instead.";
+  }
+  if (m.includes("rate") || m.includes("too many")) {
+    return "Too many attempts. Please wait a minute and try again.";
+  }
+  if (m.includes("weak") || m.includes("strong")) {
+    return "Please choose a stronger password (8+ characters, mix letters and numbers).";
+  }
   return message;
 }
 
@@ -46,10 +56,10 @@ export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {
   if (!password) return { error: "Enter your password.", email: email.data };
   try {
     await auth.api.signInEmail({ body: { email: email.data, password }, asResponse: true, headers: await headers() });
-    redirect(safeNext(form.get("next")));
   } catch (err: unknown) {
     return { error: friendly(err instanceof Error ? err.message : "Sign in failed"), email: email.data };
   }
+  redirect(safeNext(form.get("next")));
 }
 
 export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
@@ -59,10 +69,10 @@ export async function signUp(_: AuthState, form: FormData): Promise<AuthState> {
   if (!password.success) return { error: password.error.issues[0].message, email: email.data };
   try {
     await auth.api.signUpEmail({ body: { email: email.data, password: password.data, name: email.data.split("@")[0], callbackURL: `${await siteUrl()}/onboarding` }, asResponse: true, headers: await headers() });
-    redirect("/onboarding");
   } catch (err: unknown) {
     return { error: friendly(err instanceof Error ? err.message : "Sign up failed"), email: email.data };
   }
+  redirect("/onboarding");
 }
 
 export async function sendMagicLink(_: AuthState, form: FormData): Promise<AuthState> {
@@ -87,13 +97,17 @@ export async function updatePassword(_: AuthState, form: FormData): Promise<Auth
   if (!password.success) return { error: password.error.issues[0].message };
   try {
     await auth.api.changePassword({ body: { newPassword: password.data, currentPassword: String(form.get("currentPassword") ?? "") }, asResponse: true, headers: await headers() });
-    redirect("/dashboard");
   } catch (err: unknown) {
     return { error: friendly(err instanceof Error ? err.message : "Failed to update password") };
   }
+  redirect("/dashboard");
 }
 
 export async function signOut() {
-  await auth.api.signOut({ headers: await headers() });
+  try {
+    await auth.api.signOut({ headers: await headers() });
+  } catch {
+    // ignore
+  }
   redirect("/login");
 }

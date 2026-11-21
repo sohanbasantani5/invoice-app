@@ -1,14 +1,22 @@
-import { LoginForm } from "./login-form";
+﻿import { LoginForm } from "./login-form";
 import { IntroArt } from "./intro-art";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import Link from "next/link";
 
 export const metadata = { title: "Sign in" };
 
-export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+type PageProps = {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default async function LoginPage({ searchParams }: PageProps) {
   const sp = await searchParams;
-  const next = typeof sp.next === "string" && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/dashboard";
+  const rawNext = sp.next;
+  const next = typeof rawNext === "string" && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/dashboard";
   const error = typeof sp.error === "string" ? sp.error.slice(0, 200) : undefined;
+  const message = sp.migrated === "1"
+    ? "We've upgraded our sign-in system. Please sign in with your email and password to continue."
+    : undefined;
 
   return (
     <main className="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
@@ -23,9 +31,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <ThemeToggle />
         </div>
         <div className="flex flex-1 items-center justify-center py-10">
-          <LoginForm next={next} initialError={error} />
+          <LoginForm next={next} initialError={error} initialMessage={message} />
         </div>
-        <div className="space-y-2 text-center"><p className="text-caption">GST-ready invoices for Indian freelancers.</p><p className="text-caption"><Link href="/privacy" className="hover:text-accent">Privacy</Link><span className="mx-2">·</span><Link href="/terms" className="hover:text-accent">Terms</Link></p></div>
+        <div className="space-y-2 text-center">
+          <p className="text-caption">GST-ready invoices for Indian freelancers.</p>
+          <p className="text-caption">
+            <Link href="/privacy" className="hover:text-accent">Privacy</Link>
+            <span className="mx-2">·</span>
+            <Link href="/terms" className="hover:text-accent">Terms</Link>
+          </p>
+        </div>
       </section>
       <section className="hidden items-center justify-center border-l border-border bg-surface-2 p-12 lg:flex">
         <div className="w-full max-w-md">

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import Image from "next/image";
@@ -47,7 +47,7 @@ export function Sidebar({ businessName }: { businessName: string }) {
       )}
     >
       <div className={cn("mb-5 flex items-center gap-2 px-1", collapsed && "justify-center px-0")}>
-        <Image aria-hidden src="/brand-icon.png" alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg" />
+        <Image aria-hidden src="/brand-icon.png" alt="" width={32} height={32} className="size-8 shrink-0 object-contain" />
         {!collapsed && (
           <span className="truncate font-heading text-[0.9375rem] font-semibold">
             {businessName || "Invoices"}

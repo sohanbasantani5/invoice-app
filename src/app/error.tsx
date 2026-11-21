@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 
 /** 500 page: catches render/server errors in every route below the root layout. */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => console.error("render error", { digest: error.digest }), [error.digest]);
+  useEffect(() => console.error("render error:", error), [error]);
   return (
     <main className="grid min-h-dvh place-items-center px-4">
       <div className="w-full max-w-md rounded-xl border border-border bg-surface p-8 text-center">
