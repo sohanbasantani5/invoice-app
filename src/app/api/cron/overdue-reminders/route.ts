@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { getPool } from "@/lib/db/pool";
-import { renderReminder } from "@/lib/email/reminder-template";
+import { renderReminder, type ReminderAttachment } from "@/lib/email/reminder-template";
 import { createTransport } from "nodemailer";
 
 export const dynamic = "force-dynamic";
@@ -38,9 +38,9 @@ function getTransport() {
   return createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: SMTP_USER, pass: SMTP_PASS } });
 }
 
-async function sendEmail(to: string, subject: string, text: string, html: string) {
+async function sendEmail(to: string, subject: string, text: string, html: string, attachments: ReminderAttachment[] = []) {
   const transport = getTransport();
-  await transport.sendMail({ from: `"Invoices" <${SMTP_USER}>`, to, subject, text, html });
+  await transport.sendMail({ from: `"Invoices" <${SMTP_USER}>`, to, subject, text, html, attachments });
 }
 
 export async function GET(request: Request) {
@@ -110,7 +110,12 @@ export async function GET(request: Request) {
       if (!row.isSample && (!nextStage || daysOverdue < nextStage)) continue;
 
       const bank = row.show_bank
-        ? [seller.bank_name, seller.bank_account_name, seller.bank_account_number, seller.bank_ifsc].filter(Boolean).join(" · ")
+        ? {
+            name: typeof seller.bank_name === "string" ? seller.bank_name : undefined,
+            holder: typeof seller.bank_account_name === "string" ? seller.bank_account_name : undefined,
+            number: typeof seller.bank_account_number === "string" ? seller.bank_account_number : undefined,
+            ifsc: typeof seller.bank_ifsc === "string" ? seller.bank_ifsc : undefined,
+          }
         : null;
 
       const preview = await renderReminder({
@@ -119,14 +124,14 @@ export async function GET(request: Request) {
         amountDuePaise: amountDue,
         dueDate: row.due_date,
         upiId: row.show_upi_qr ? String(seller.upi_id || "") : null,
-        bankDetails: bank || null,
+        bank,
         reminderCount: currentStage + 1,
       });
 
       let sent = false;
       if (!DRY_RUN) {
         try {
-          await sendEmail(testTo ?? row.email, preview.subject, preview.text, preview.html);
+          await sendEmail(testTo ?? row.email, preview.subject, preview.text, preview.html, preview.attachments);
           sent = true;
         } catch {
           sent = false;
