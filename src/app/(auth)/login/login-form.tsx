@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
-import { prepareCredentialLogin, sendMagicLink, sendPasswordReset } from "../actions";
+import { sendMagicLink, sendPasswordReset } from "../actions";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -97,15 +97,6 @@ export function LoginForm({
 
     try {
       if (mode === "signin") {
-        // Legacy Supabase password bridge: verify against Supabase on first login,
-        // store a bcrypt hash in Better Auth, then sign in normally.
-        const bridge = await prepareCredentialLogin(trimmedEmail, password);
-        if (bridge.error) {
-          setError(friendly(bridge.error));
-          setPending(false);
-          return;
-        }
-
         const { error: signInError } = await authClient.signIn.email({
           email: trimmedEmail,
           password,

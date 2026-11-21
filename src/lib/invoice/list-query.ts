@@ -37,7 +37,7 @@ export type ListInvoiceRow = Pick<
 
 /** Rows rendered per page. Exports ignore this and read every matching row. */
 export const PAGE_LIMIT = 500;
-/** Supabase/PostgREST caps one response at 1000 rows, so exports page through. */
+/** Exports page through results in chunks to bound memory and query size. */
 const CHUNK = 1000;
 const EXPORT_MAX = 20000;
 
