@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSyncExternalStore } from "react";
 import { LogOut, PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react";
@@ -46,12 +47,7 @@ export function Sidebar({ businessName }: { businessName: string }) {
       )}
     >
       <div className={cn("mb-5 flex items-center gap-2 px-1", collapsed && "justify-center px-0")}>
-        <span
-          aria-hidden
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-accent font-heading text-sm font-semibold text-on-accent"
-        >
-          {(businessName || "I").slice(0, 1).toUpperCase()}
-        </span>
+        <Image aria-hidden src="/brand-icon.png" alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg" />
         {!collapsed && (
           <span className="truncate font-heading text-[0.9375rem] font-semibold">
             {businessName || "Invoices"}

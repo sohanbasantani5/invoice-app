@@ -1,14 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import {
-  sendMagicLink,
-  sendPasswordReset,
-  signIn,
-  signUp,
-  type AuthState,
-} from "../actions";
+import { authClient } from "@/lib/auth/client";
+import { sendMagicLink, sendPasswordReset, signIn, signUp } from "../actions";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,19 +34,27 @@ function ModeForm({
   next: string;
   initialError?: string;
 }) {
-  const [state, action, pending] = useActionState<AuthState, FormData>(
+  const [state, action, pending] = useActionState<{ error?: string; message?: string; email?: string } | null, FormData>(
     ACTIONS[mode],
     initialError ? { error: initialError } : null,
   );
+
   const copy = COPY[mode];
   const showPassword = mode === "signin" || mode === "signup";
   const google = process.env.NEXT_PUBLIC_ENABLE_GOOGLE === "true";
 
   async function withGoogle() {
-    await createClient().auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
-    });
+    await authClient.signIn.social({ provider: "google", callbackURL: next });
+  }
+
+  function friendly(message: string): string {
+    const m = message.toLowerCase();
+    if (m.includes("invalid") || m.includes("wrong") || m.includes("credentials")) return "That email and password don't match. Try again or use a magic link.";
+    if (m.includes("not confirmed") || m.includes("verify")) return "Please confirm your email first — check your inbox for the link.";
+    if (m.includes("already") || m.includes("exists")) return "An account with this email already exists. Sign in instead.";
+    if (m.includes("rate") || m.includes("too many")) return "Too many attempts. Please wait a minute and try again.";
+    if (m.includes("weak") || m.includes("strong")) return "Please choose a stronger password (8+ characters, mix letters and numbers).";
+    return message;
   }
 
   return (
@@ -95,11 +97,7 @@ function ModeForm({
           />
         </Field>
         {showPassword && (
-          <Field
-            label="Password"
-            htmlFor="password"
-            helper={mode === "signup" ? "At least 8 characters." : undefined}
-          >
+          <Field label="Password" htmlFor="password" helper={mode === "signup" ? "At least 8 characters." : undefined}>
             <Input
               id="password"
               name="password"

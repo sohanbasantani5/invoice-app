@@ -38,6 +38,7 @@ service-account*.json
 
 # private notes and local assistant config (keep out of the public repo)
 /private/
+/backup/
 /.claude/
 CLAUDE.local.md
 harness.tmp.mjs

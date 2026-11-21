@@ -1,1 +1,1 @@
-{"framework": "nextjs"}
+{"framework": "nextjs", "regions": ["bom1"], "crons": [{"path": "/api/cron/overdue-reminders", "schedule": "30 3 * * *"}]}
