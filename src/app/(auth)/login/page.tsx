@@ -1,4 +1,4 @@
-﻿import { LoginForm } from "./login-form";
+import { LoginForm } from "./login-form";
 import { IntroArt } from "./intro-art";
 import { ThemeToggle } from "@/components/shell/theme-toggle";
 import Link from "next/link";
@@ -18,6 +18,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
     ? "We've upgraded our sign-in system. Please sign in with your email and password to continue."
     : undefined;
 
+  const enableGoogle = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+
   return (
     <main className="grid min-h-dvh bg-bg lg:grid-cols-[minmax(0,0.9fr)_minmax(420px,1.1fr)]">
       <section className="relative flex flex-col px-4 py-8 sm:px-10">
@@ -31,7 +33,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <ThemeToggle />
         </div>
         <div className="flex flex-1 items-center justify-center py-10">
-          <LoginForm next={next} initialError={error} initialMessage={message} />
+          <LoginForm next={next} initialError={error} initialMessage={message} enableGoogle={enableGoogle} />
         </div>
         <div className="space-y-2 text-center">
           <p className="text-caption">GST-ready invoices for Indian freelancers.</p>
