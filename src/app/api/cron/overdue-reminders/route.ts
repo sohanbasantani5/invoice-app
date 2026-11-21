@@ -54,7 +54,8 @@ export async function GET(request: Request) {
     return Response.json({ error: "Test recipient is not allowed" }, { status: 400 });
 
   try {
-    const { rows } = await getPool().query<Candidate>(`
+    const pool = getPool();
+    const { rows } = await pool.query<Candidate>(`
       select i.id, i.invoice_number, i.total_paise, i.tds_paise, i.amount_paid_paise,
              i.due_date::text, i.show_bank, i.show_upi_qr, i.seller,
              i.auto_remind, i.last_reminder_sent_at, i.reminder_count,
@@ -70,10 +71,33 @@ export async function GET(request: Request) {
       order by i.due_date, i.id
     `);
 
+    // If nothing is overdue right now, still let ?testTo=... verify the full
+    // SMTP + UPI QR pipeline by building a realistic preview from a
+    // representative sent/partially-paid invoice for that user.
+    let source = rows.map((r) => ({ ...r }));
+    if (testTo && source.length === 0) {
+      const { rows: sampleRows } = await pool.query<Candidate>(
+        `
+        select i.id, i.invoice_number, i.total_paise, i.tds_paise, i.amount_paid_paise,
+               i.due_date::text, i.show_bank, i.show_upi_qr, i.seller,
+               i.auto_remind, i.last_reminder_sent_at, i.reminder_count,
+               p.email, p.business_name
+        from public.invoices i
+        join public.profiles p on p.user_id = i.user_id and p.email = $1
+        where i.status in ('sent', 'partially_paid')
+        order by i.due_date, i.id
+        limit 1
+        `,
+        [testTo]
+      );
+      source = sampleRows.map((r) => ({ ...r, isSample: true }));
+    }
+
     const now = new Date();
     const results: { invoice_id: string; recipient: string; sent: boolean; stage: number }[] = [];
 
-    for (const row of rows) {
+    for (const raw of source) {
+      const row = raw as Candidate & { isSample?: boolean };
       const seller = row.seller ?? {};
       const amountDue = Math.max(0, Number(row.total_paise) - Number(row.tds_paise) - Number(row.amount_paid_paise));
       if (amountDue <= 0) continue;
@@ -83,7 +107,7 @@ export async function GET(request: Request) {
       const currentStage = row.reminder_count ?? 0;
       const nextStage = targetStages[currentStage];
 
-      if (!nextStage || daysOverdue < nextStage) continue;
+      if (!row.isSample && (!nextStage || daysOverdue < nextStage)) continue;
 
       const bank = row.show_bank
         ? [seller.bank_name, seller.bank_account_name, seller.bank_account_number, seller.bank_ifsc].filter(Boolean).join(" · ")
@@ -127,7 +151,8 @@ export async function GET(request: Request) {
       results,
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     console.error("Reminder cron error:", err);
-    return Response.json({ error: "Reminder cron failed" }, { status: 500 });
+    return Response.json({ error: message }, { status: 500 });
   }
 }
