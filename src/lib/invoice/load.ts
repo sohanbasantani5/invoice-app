@@ -1,11 +1,10 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, PaymentMethod, ProfileRow } from "@/types/database";
+import type { PaymentMethod, ProfileRow } from "@/types/database";
 import type { SellerSnapshot } from "./types";
 import type { EmailConfig } from "./email";
 import { financialYear, formatInvoiceNumber } from "./numbering";
 
-type DB = SupabaseClient<Database>;
+type DB = any;
 
 /** Signed URLs (1h) for the logo and signature in the private branding bucket. */
 export async function brandingUrls(supabase: DB, seller: SellerSnapshot) {

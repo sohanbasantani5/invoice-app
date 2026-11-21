@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/server";
 import { SetupNeeded } from "@/components/shell/setup-needed";
 import { OnboardingFlow } from "./onboarding-flow";
 

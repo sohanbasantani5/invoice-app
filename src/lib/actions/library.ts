@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getUser } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth/server";
 import { buyerSchema } from "@/lib/validation/invoice";
 import { buyerFromForm } from "@/lib/invoice/document";
 import { parseRupeesToPaise } from "@/lib/format";

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
+import { uploadInvoicePdf } from "@/lib/actions/invoice";
 import { createGmailDraft } from "@/lib/actions/gmail";
 import { calcDocument } from "@/lib/invoice/document";
 import { buildPaperModel } from "@/lib/invoice/paper-model";
@@ -52,13 +52,12 @@ export function EmailButton({
       const fileName = pdfFileName(doc.invoice_number, doc.buyer.name);
       const blob = await buildInvoicePdf(model, { ...assets, qrDataUrl: qr }, doc.template_id);
 
-      // Private bucket, owner-only upload. The Gmail draft reads the PDF from here; the fallback links to it.
-      const sb = createClient();
-      const path = `${config.userId}/${invoiceId}.pdf`;
-      const up = await sb.storage.from("invoice-pdfs").upload(path, blob, { upsert: true, contentType: "application/pdf" });
-      if (up.error) console.error(up.error);
+      const formData = new FormData();
+      formData.append("file", blob, `${invoiceId}.pdf`);
+      const up = await uploadInvoicePdf(invoiceId, formData);
+      if (!up.ok) console.error(up.error);
 
-      if (config.gmailEmail && !up.error) {
+      if (config.gmailEmail && up.ok) {
         const mail = buildEmail(config.templates, doc, calc.total, "attached");
         const r = await createGmailDraft({ invoiceId, to: doc.buyer.email ?? "", subject: mail.subject, body: mail.body, fileName });
         if (r.ok) {
@@ -73,13 +72,9 @@ export function EmailButton({
         toast.error(r.reconnect ? "Gmail needs to be connected again, so this email uses the normal way." : "Couldn't create the Gmail draft, so this email uses the normal way.");
       }
 
-      // Normal way: download + 30-day link + Gmail compose.
+      // Normal way: download + link + Gmail compose.
       saveBlob(blob, fileName);
-      let link = "";
-      if (!up.error) {
-        const signed = await sb.storage.from("invoice-pdfs").createSignedUrl(path, THIRTY_DAYS);
-        link = signed.data?.signedUrl ?? "";
-      }
+      const link = up.url ?? "";
       if (!link) toast.error("Couldn't make the secure link, so the email goes without it. Attach the PDF yourself.");
       const mail = buildEmail(config.templates, doc, calc.total, "link", link);
       go(gmailUrl({ authuser: config.authuser, to: doc.buyer.email, subject: mail.subject, body: mail.body }));

@@ -141,7 +141,8 @@ src/app/            routes: (auth) login/reset, (app) dashboard/invoices/clients
 src/components/     invoice editor + preview + PDF, shell (sidebar, command menu), profile forms, ui primitives
 src/lib/invoice/    the calculation function, GST rules, numbering, amount in words, email templates
 src/lib/validation/ Zod schemas and Indian identifier checks (GSTIN checksum, PAN, IFSC, UPI)
-src/lib/supabase/   server, browser and proxy clients
+src/lib/db/         Neon Postgres database pool and query client
+src/lib/auth/       Better Auth server, client, and session management
 src/lib/gmail/      OAuth, token encryption, MIME builder for drafts
 supabase/migrations SQL, run in order
 tests/              unit (Vitest) and e2e (Playwright)

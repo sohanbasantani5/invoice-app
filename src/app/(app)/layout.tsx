@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/server";
 import { Sidebar } from "@/components/shell/sidebar";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { LazyCommandMenu } from "@/components/shell/command-menu-lazy";

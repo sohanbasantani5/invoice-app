@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getSession, getUser } from "@/lib/supabase/server";
+import { getSession, getUser } from "@/lib/auth/server";
 import { invoiceFormSchema, paymentSchema, type InvoiceFormValues } from "@/lib/validation/invoice";
 import { calcDocument, formToDocument, sellerFromProfile } from "@/lib/invoice/document";
 import { financialYear, formatInvoiceNumber } from "@/lib/invoice/numbering";
@@ -90,8 +90,8 @@ export async function saveInvoice(
   if (!v.id && (v.auto_number || !invoiceNumber)) {
     const { data: seq, error } = await supabase.rpc("next_invoice_number", { p_fy: fy });
     if (error || seq == null) return { ok: false, error: "Couldn't assign an invoice number. " + (error?.message ?? "") };
-    sequence = seq;
-    invoiceNumber = formatInvoiceNumber(profile?.invoice_prefix ?? "INV", fy, seq);
+    sequence = Number(seq);
+    invoiceNumber = formatInvoiceNumber(profile?.invoice_prefix ?? "INV", fy, Number(seq));
   }
   if (!invoiceNumber) return { ok: false, error: "Invoice number is required.", field: "invoice_number" };
 
@@ -183,7 +183,7 @@ export async function saveInvoice(
     });
   }
   if (mode !== "autosave") refresh();
-  return { ok: true, id, invoice_number: invoiceNumber, client_id: clientId, status };
+  return { ok: true, id: String(id), invoice_number: invoiceNumber, client_id: clientId, status };
 }
 
 export type StatusResult =
@@ -401,4 +401,19 @@ export async function deletePayment(id: string): Promise<SimpleResult> {
   if (error) return { ok: false, error: error.message };
   refresh();
   return { ok: true };
+}
+
+export async function uploadInvoicePdf(
+  invoiceId: string,
+  formData: FormData
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const { user, db } = await getUser();
+  if (!user) return { ok: false, error: "Please sign in again." };
+  const file = formData.get("file") as File | null;
+  if (!file) return { ok: false, error: "No file provided" };
+  const path = `${user.id}/${invoiceId}.pdf`;
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const res = await db.storage.from("invoice-pdfs").upload(path, bytes, { upsert: true, contentType: "application/pdf" });
+  if (res.error) return { ok: false, error: res.error.message };
+  return { ok: true, url: res.data?.url || res.data?.path };
 }

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getProfile, getUser } from "@/lib/supabase/server";
+import { getProfile, getUser } from "@/lib/auth/server";
 import { calcDocument, rowToDocument, sellerFromProfile } from "@/lib/invoice/document";
 import { buildPaperModel } from "@/lib/invoice/paper-model";
 import { brandingUrls } from "@/lib/invoice/load";

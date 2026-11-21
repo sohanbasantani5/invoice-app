@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/server";
 import { stateName } from "@/lib/india/states";
 
 // CSV columns cover GSTR-1 (04 §12): number, date, GSTIN, place of supply, taxable, rate, CGST/SGST/IGST, total.

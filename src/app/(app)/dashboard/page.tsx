@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FileText, Plus, UserPlus } from "lucide-react";
-import { getProfile, getUser } from "@/lib/supabase/server";
+import { getProfile, getUser } from "@/lib/auth/server";
 import { PageHeader } from "@/components/shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/shell/skeletons";

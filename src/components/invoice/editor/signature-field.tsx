@@ -4,7 +4,6 @@ import { useRef, useState, useTransition } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { saveProfileSection, uploadBrandingImage } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/field";
@@ -75,7 +74,6 @@ export function SignatureField({
     start(async () => {
       const saved = await saveProfileSection("branding", { signature_path: null });
       if (!saved.ok) return void toast.error(saved.error);
-      if (path) await createClient().storage.from("branding").remove([path]);
       onChange({ path: null, url: null });
       toast.success("Signature removed");
     });

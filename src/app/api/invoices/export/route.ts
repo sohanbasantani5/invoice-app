@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getSession } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/server";
 import { todayISO } from "@/lib/format";
 import { describeFilters, parseListFilters } from "@/lib/invoice/list-filters";
 import { fetchAllInvoiceList } from "@/lib/invoice/list-query";

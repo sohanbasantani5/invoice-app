@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getUser } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getUser } from "@/lib/auth/server";
+import { createDbClient } from "@/lib/db/client";
 import { decryptToken } from "@/lib/gmail/crypto";
 import { createDraft, GmailError, refreshAccessToken, revokeToken } from "@/lib/gmail/google";
 import { gmailDraftUrls } from "@/lib/invoice/email";
@@ -36,7 +36,7 @@ export async function createGmailDraft(input: z.input<typeof draftSchema>): Prom
   const limit = rateLimit(`gmail-draft:user:${user.id}`, 20, 10 * 60 * 1000);
   if (!limit.ok) return { ok: false, error: "Too many Gmail drafts. Try again later." };
 
-  const admin = createAdminClient();
+  const admin = createDbClient();
   const { data: conn } = await admin.from("gmail_connections").select("email, refresh_token_enc").eq("user_id", user.id).maybeSingle();
   if (!conn) return { ok: false, error: "Gmail isn't connected.", reconnect: true };
 
@@ -61,7 +61,7 @@ export async function createGmailDraft(input: z.input<typeof draftSchema>): Prom
 export async function disconnectGmail(): Promise<{ ok: boolean; error?: string }> {
   const { user } = await getUser();
   if (!user) return { ok: false, error: "Please sign in again." };
-  const admin = createAdminClient();
+  const admin = createDbClient();
   const { data: conn } = await admin.from("gmail_connections").select("refresh_token_enc").eq("user_id", user.id).maybeSingle();
   if (conn) {
     try {

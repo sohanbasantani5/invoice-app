@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getSession, getUser } from "@/lib/supabase/server";
+import { getSession, getUser } from "@/lib/auth/server";
 import { profileSections, type ProfileSection } from "@/lib/validation/profile";
 import { checkGstin } from "@/lib/validation/india";
 import type { ProfileRow } from "@/types/database";

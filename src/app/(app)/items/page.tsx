@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getProfile, getUser } from "@/lib/supabase/server";
+import { getProfile, getUser } from "@/lib/auth/server";
 import { PageHeader } from "@/components/shell/page-header";
 import { ItemsLibrary } from "./items-library";
 

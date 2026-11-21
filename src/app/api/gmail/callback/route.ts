@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { getUser } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { getUser } from "@/lib/auth/server";
+import { createDbClient } from "@/lib/db/client";
 import { rateLimit, requestIp } from "@/lib/security/rate-limit";
 import { safeErrorInfo } from "@/lib/security/logging";
 import { encryptToken } from "@/lib/gmail/crypto";
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     if (!t.refresh_token) return back("error");
     if (!(t.scope ?? "").split(" ").includes(GMAIL_SCOPE)) return back("error");
     const email = await gmailAddress(t.access_token!);
-    const { error } = await createAdminClient()
+    const { error } = await createDbClient()
       .from("gmail_connections")
       .upsert({ user_id: user.id, email, refresh_token_enc: encryptToken(t.refresh_token) }, { onConflict: "user_id" });
     return back(error ? "error" : "connected");

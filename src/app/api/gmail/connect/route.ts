@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { getUser } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth/server";
 import { authUrl, gmailConfigured } from "@/lib/gmail/google";
 import { rateLimit, requestIp } from "@/lib/security/rate-limit";
 

@@ -1,8 +1,7 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, InvoiceRow, InvoiceStatus } from "@/types/database";
 import type { ListFilters } from "./list-filters";
 
-type DB = SupabaseClient<Database>;
+type DB = any;
 
 /** Exactly the columns the list, the summary and every export read — one string, so they can't drift. */
 export const LIST_COLUMNS =
@@ -78,7 +77,8 @@ export async function fetchInvoiceList(
   today: string,
   limit = PAGE_LIMIT,
 ): Promise<{ rows: ListInvoiceRow[]; count: number }> {
-  const { data, count } = await buildInvoiceQuery(supabase, f, today).limit(limit).returns<ListInvoiceRow[]>();
+  const q = buildInvoiceQuery(supabase, f, today).limit(limit);
+  const { data, count } = (await (q.returns ? q.returns() : q)) as { data: ListInvoiceRow[] | null; count: number | null };
   const rows = data ?? [];
   return { rows, count: count ?? rows.length };
 }
@@ -87,7 +87,8 @@ export async function fetchInvoiceList(
 export async function fetchAllInvoiceList(supabase: DB, f: ListFilters, today: string, max = EXPORT_MAX): Promise<ListInvoiceRow[]> {
   const out: ListInvoiceRow[] = [];
   for (let from = 0; from < max; from += CHUNK) {
-    const { data } = await buildInvoiceQuery(supabase, f, today).range(from, from + CHUNK - 1).returns<ListInvoiceRow[]>();
+    const q = buildInvoiceQuery(supabase, f, today).range(from, from + CHUNK - 1);
+    const { data } = (await (q.returns ? q.returns() : q)) as { data: ListInvoiceRow[] | null };
     const chunk = data ?? [];
     out.push(...chunk);
     if (chunk.length < CHUNK) break;

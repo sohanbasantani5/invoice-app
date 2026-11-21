@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/server";
 import { PageHeader } from "@/components/shell/page-header";
 import {
   AddressTaxForm,

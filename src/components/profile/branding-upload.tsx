@@ -3,14 +3,13 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
 import { saveProfileSection, uploadBrandingImage } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/button";
 
 const MAX_BYTES = 1024 * 1024;
 const TYPES = ["image/png", "image/jpeg"];
 
-/** Upload a logo or signature to the private `branding` bucket at `{user_id}/{kind}.{ext}`. */
+/** Upload a logo or signature to private branding storage. */
 export function BrandingUpload({
   kind,
   userId: _userId,
@@ -27,19 +26,15 @@ export function BrandingUpload({
   void _userId;
   const input = useRef<HTMLInputElement>(null);
   const [current, setCurrent] = useState(path);
-  const [url, setUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(path);
   const [pending, start] = useTransition();
 
   useEffect(() => {
-    if (!current) return;
-    let alive = true;
-    createClient()
-      .storage.from("branding")
-      .createSignedUrl(current, 3600)
-      .then(({ data }) => alive && setUrl(data?.signedUrl ?? null));
-    return () => {
-      alive = false;
-    };
+    if (!current) {
+      setUrl(null);
+      return;
+    }
+    setUrl(current);
   }, [current]);
 
   function onFile(file: File | undefined) {
@@ -59,7 +54,6 @@ export function BrandingUpload({
     start(async () => {
       const res = await saveProfileSection("branding", { [`${kind}_path`]: null });
       if (!res.ok) return void toast.error(res.error);
-      if (current) await createClient().storage.from("branding").remove([current]);
       setCurrent(null);
       setUrl(null);
     });

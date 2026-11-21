@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getProfile, getUser } from "@/lib/supabase/server";
+import { getProfile, getUser } from "@/lib/auth/server";
 import { InvoiceEditor } from "@/components/invoice/editor/invoice-editor";
 import { brandingUrls, connectedGmail, editorLists, emailConfig } from "@/lib/invoice/load";
 import { documentToForm, rowToDocument, sellerFromProfile } from "@/lib/invoice/document";

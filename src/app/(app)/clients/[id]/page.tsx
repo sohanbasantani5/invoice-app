@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, FileText, Plus } from "lucide-react";
-import { getUser } from "@/lib/supabase/server";
+import { getUser } from "@/lib/auth/server";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/field";
 import { EmptyState } from "@/components/shell/empty-state";
