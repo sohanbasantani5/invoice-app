@@ -2,7 +2,6 @@
 import type { NextRequest } from "next/server";
 
 const protectedPaths = ["/dashboard", "/invoices", "/clients", "/items", "/settings", "/onboarding"];
-const authPaths = ["/login", "/auth/callback", "/auth/reset"];
 
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -18,8 +17,6 @@ export default function middleware(request: NextRequest) {
   }
 
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
-  const isAuth = authPaths.some((p) => pathname.startsWith(p));
-
   // Pure cookie inspection — zero imports of pg, auth, or Node-only modules
   const sessionToken =
     request.cookies.get("__Secure-better-auth.session_token")?.value ||
@@ -60,11 +57,8 @@ export default function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages to dashboard
-  if (isAuth && sessionToken && pathname !== "/auth/callback" && pathname !== "/auth/reset") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
+  // Auth pages and auth API routes must always render. A cookie may be stale,
+  // and deciding its validity belongs to Better Auth on the Node runtime.
   return NextResponse.next();
 }
 
