@@ -215,6 +215,8 @@ export class QueryBuilder<T = any> implements PromiseLike<{ data: T[] | null; er
       "clients",
       "items",
       "invoices",
+      "invoice_items",
+      "payments",
       "invoice_counters",
       "gmail_connections",
     ];
@@ -338,8 +340,10 @@ export class QueryBuilder<T = any> implements PromiseLike<{ data: T[] | null; er
         const rows = Array.isArray(this.insertPayload) ? this.insertPayload : [this.insertPayload];
         if (rows.length === 0) return { data: [], error: null, count: 0 };
 
-        // Attach userId if row has no user_id and table is user scoped
-        const userScopedTables = ["clients", "items", "invoices", "invoice_items", "profiles"];
+        // Attach userId if row has no user_id and table is user scoped.
+        // `payments` is included so a missing user_id never hits the NOT NULL constraint
+        // (callers also pass it explicitly, but this is a last line of defense).
+        const userScopedTables = ["clients", "items", "invoices", "invoice_items", "payments", "profiles"];
         if (this.userId && userScopedTables.includes(this.table)) {
           for (const r of rows) {
             if (r.user_id === undefined) r.user_id = this.userId;

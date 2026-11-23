@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth/auth";
+import { getPool } from "@/lib/db/pool";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -47,6 +48,28 @@ function friendly(message: string): string {
 function read(form: FormData) {
   const email = emailSchema.safeParse(String(form.get("email") ?? "").trim().toLowerCase());
   return { email };
+}
+
+/**
+ * Why did a password sign-in fail? Distinguishes the common migrated-user case — the account
+ * exists in Better Auth but has no `credential` password hash yet (imported from Supabase
+ * without a password) — from a plain wrong-password / no-account case, so the UI can offer a
+ * one-click "Send Magic Link" / "Set a Password" escape hatch instead of a cryptic error.
+ */
+export async function getLoginHelp(email: string): Promise<{ kind: "no_user" | "has_password" | "no_password"; email: string }> {
+  const clean = String(email ?? "").trim().toLowerCase();
+  const pool = getPool();
+  try {
+    const u = await pool.query(`select id from public."user" where lower("email") = lower($1) limit 1`, [clean]);
+    const user = u.rows[0];
+    if (!user) return { kind: "no_user", email: clean };
+    const a = await pool.query(`select "password" from public."account" where "userId" = $1 and "providerId" = 'credential' limit 1`, [user.id]);
+    const hash = a.rows[0]?.password;
+    return { kind: typeof hash === "string" && hash.length > 0 ? "has_password" : "no_password", email: clean };
+  } catch {
+    // If the tables are unreachable, fall back to "no_user" (the generic error path).
+    return { kind: "no_user", email: clean };
+  }
 }
 
 export async function signIn(_: AuthState, form: FormData): Promise<AuthState> {

@@ -8,8 +8,9 @@ import { Section } from "./editor/section";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { addPayment, deletePayment } from "@/lib/actions/invoice";
+import { formatDate, formatMoney, paiseToInput, parseRupeesToPaise, todayISO } from "@/lib/format";
+import { percentFromTdsWithheld, tdsWithheldFromPercent } from "@/lib/invoice/payment-math";
 import type { InvoiceStatus, PaymentMethod, PaymentRow } from "@/types/database";
-import { formatDate, formatMoney, paiseToInput, todayISO } from "@/lib/format";
 
 export const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "upi", label: "UPI" },
@@ -23,22 +24,53 @@ export const METHODS: { value: PaymentMethod; label: string }[] = [
 export function PaymentForm({
   invoiceId,
   balancePaise,
+  taxablePaise = 0,
   onDone,
 }: {
   invoiceId: string;
   balancePaise: number;
+  /** Taxable (GST-exclusive) value — the base TDS is calculated on. */
+  taxablePaise?: number;
   onDone?: () => void;
 }) {
   const router = useRouter();
   const [amount, setAmount] = useState(balancePaise > 0 ? paiseToInput(balancePaise) : "");
+  const [tdsPercent, setTdsPercent] = useState("0");
+  const [tdsWithheld, setTdsWithheld] = useState("");
   const [paidOn, setPaidOn] = useState(todayISO());
   const [method, setMethod] = useState<PaymentMethod>("upi");
   const [reference, setReference] = useState("");
   const [pending, start] = useTransition();
 
+  const basePaise = Math.max(0, taxablePaise);
+  const amountPaise = parseRupeesToPaise(amount) ?? 0;
+  const withheldPaise = parseRupeesToPaise(tdsWithheld) ?? 0;
+
+  function onPercentChange(raw: string) {
+    setTdsPercent(raw);
+    const pct = Math.max(0, Number(raw) || 0);
+    const withheld = tdsWithheldFromPercent(basePaise, pct);
+    setTdsWithheld(withheld > 0 ? paiseToInput(withheld) : "");
+  }
+
+  function onWithheldChange(raw: string) {
+    setTdsWithheld(raw);
+    const paise = parseRupeesToPaise(raw) ?? 0;
+    const pct = percentFromTdsWithheld(basePaise, paise);
+    setTdsPercent(pct > 0 ? String(pct) : "0");
+  }
+
   function submit() {
     start(async () => {
-      const r = await addPayment({ invoice_id: invoiceId, amount, paid_on: paidOn, method, reference });
+      const r = await addPayment({
+        invoice_id: invoiceId,
+        amount,
+        tds_rate: tdsPercent || "0",
+        tds_paise_input: tdsWithheld || "0",
+        paid_on: paidOn,
+        method,
+        reference,
+      });
       if (!r.ok) return void toast.error(r.error);
       toast.success("Payment recorded");
       onDone?.();
@@ -46,10 +78,25 @@ export function PaymentForm({
     });
   }
 
+  const settlePaise = amountPaise + withheldPaise;
+
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Field label="Amount (₹)" htmlFor={`pay-amount-${invoiceId}`}>
+      <Field label="Amount received (₹)" htmlFor={`pay-amount-${invoiceId}`}>
         <Input id={`pay-amount-${invoiceId}`} inputMode="decimal" className="tnum" value={amount} onChange={(e) => setAmount(e.target.value)} />
+      </Field>
+      <Field label="TDS (%)" htmlFor={`pay-tds-pct-${invoiceId}`} helper={basePaise > 0 ? "Auto-calculates TDS withheld." : "No taxable base on this invoice."}>
+        <Input id={`pay-tds-pct-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsPercent} onChange={(e) => onPercentChange(e.target.value)} />
+      </Field>
+      <Field label="TDS withheld (₹)" htmlFor={`pay-tds-amt-${invoiceId}`}>
+        <Input id={`pay-tds-amt-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsWithheld} onChange={(e) => onWithheldChange(e.target.value)} />
+      </Field>
+      <Field
+        label="Amount to settle (₹)"
+        htmlFor={`pay-settle-${invoiceId}`}
+        helper={withheldPaise > 0 ? "Cash received + TDS withheld." : "Same as what you received."}
+      >
+        <Input id={`pay-settle-${invoiceId}`} className="tnum" readOnly value={settlePaise > 0 ? paiseToInput(settlePaise) : "0"} />
       </Field>
       <Field label="Paid on" htmlFor={`pay-date-${invoiceId}`}>
         <Input id={`pay-date-${invoiceId}`} type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
@@ -79,12 +126,14 @@ export function PaymentsPanel({
   payablePaise,
   paidPaise,
   status,
+  taxablePaise,
 }: {
   invoiceId: string;
   payments: PaymentRow[];
   payablePaise: number;
   paidPaise: number;
   status: InvoiceStatus;
+  taxablePaise?: number;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -121,6 +170,11 @@ export function PaymentsPanel({
           {payments.map((p) => (
             <li key={p.id} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="tnum font-medium">{formatMoney(p.amount_paise)}</span>
+              {p.tds_paise > 0 && (
+                <span className="tnum rounded-md bg-surface-2 px-1.5 py-0.5 text-xs text-ink-2" title={`TDS ${p.tds_rate}% withheld`}>
+                  TDS {formatMoney(p.tds_paise)}
+                </span>
+              )}
               <span className="min-w-0 flex-1 truncate text-ink-3">
                 {formatDate(p.paid_on)} · {METHODS.find((m) => m.value === p.method)?.label ?? "—"}
                 {p.reference ? ` · ${p.reference}` : ""}
@@ -138,7 +192,7 @@ export function PaymentsPanel({
           ))}
         </ul>
       )}
-      {status !== "cancelled" && balance > 0 && <PaymentForm invoiceId={invoiceId} balancePaise={balance} />}
+      {status !== "cancelled" && balance > 0 && <PaymentForm invoiceId={invoiceId} balancePaise={balance} taxablePaise={taxablePaise} />}
     </Section>
   );
 }

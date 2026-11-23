@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { authClient } from "@/lib/auth/client";
-import { sendMagicLink, sendPasswordReset } from "../actions";
+import { getLoginHelp, sendMagicLink, sendPasswordReset } from "../actions";
 import { Field, Input } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -51,6 +51,8 @@ export function LoginForm({
   const [error, setError] = useState<string | undefined>(initialError);
   const [message, setMessage] = useState<string | undefined>(initialMessage);
   const [pending, setPending] = useState(false);
+  /** Set when a migrated account exists but has no password set yet. */
+  const [noPassword, setNoPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -61,6 +63,7 @@ export function LoginForm({
     setMode(newMode);
     setError(undefined);
     setMessage(undefined);
+    setNoPassword(false);
   }
 
   async function withGoogle() {
@@ -104,8 +107,22 @@ export function LoginForm({
         });
 
         if (signInError) {
-          setError(friendly(signInError.message || "Sign in failed"));
           setPending(false);
+          // Migrated users have no credential hash yet — tell them clearly and give a path out,
+          // instead of a generic "wrong credentials" message.
+          let help: { kind: "no_user" | "has_password" | "no_password" } = { kind: "no_user" };
+          try {
+            help = await getLoginHelp(trimmedEmail);
+          } catch {
+            /* fall through to the friendly generic message */
+          }
+          if (help.kind === "no_password") {
+            setNoPassword(true);
+            setError(undefined);
+          } else {
+            setNoPassword(false);
+            setError(friendly(signInError.message || "Sign in failed"));
+          }
           return;
         }
 
@@ -226,6 +243,23 @@ export function LoginForm({
           <p role="status" className="rounded-lg bg-accent-soft px-3 py-2 text-sm text-accent">
             {message}
           </p>
+        )}
+
+        {noPassword && (
+          <div role="alert" className="rounded-lg bg-accent-soft px-3 py-2.5 text-sm">
+            <p className="font-medium text-accent">This account hasn&apos;t set a password yet.</p>
+            <p className="mt-0.5 text-ink-2">
+              You&apos;re already registered — use a magic link, or set a password so you can sign in with your email and password.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button type="button" className="inline-flex h-8 items-center rounded-md bg-accent px-3 text-sm font-medium text-on-accent hover:opacity-90" onClick={() => handleModeChange("magic")}>
+                Send magic link
+              </button>
+              <button type="button" className="inline-flex h-8 items-center rounded-md border border-border px-3 text-sm font-medium text-ink hover:bg-surface-2" onClick={() => handleModeChange("forgot")}>
+                Set a password
+              </button>
+            </div>
+          </div>
         )}
 
         <Button type="submit" size="lg" disabled={pending} className="mt-1 w-full">

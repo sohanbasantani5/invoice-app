@@ -27,7 +27,7 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("invoices")
-      .select("id, invoice_number, issue_date, due_date, status, total_paise, tds_rate, tds_paise, amount_paid_paise, currency, buyer, reminder_count, last_reminder_sent_at")
+      .select("id, invoice_number, issue_date, due_date, status, total_paise, taxable_paise, tds_rate, tds_paise, amount_paid_paise, currency, buyer, reminder_count, last_reminder_sent_at")
       .eq("client_id", id)
       .order("issue_date", { ascending: false }),
   ]);
@@ -44,6 +44,7 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     receivedPaise: r.amount_paid_paise,
     tdsPaise: r.tds_paise,
     tdsRate: Number(r.tds_rate),
+    taxablePaise: r.taxable_paise,
     balancePaise: r.total_paise - r.tds_paise - r.amount_paid_paise,
     currency: r.currency,
     reminderCount: r.reminder_count,

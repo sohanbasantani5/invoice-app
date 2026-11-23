@@ -37,7 +37,18 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     password: {
       hash: (password: string) => bcrypt.hash(password, 12),
-      verify: async ({ hash, password }: { hash: string; password: string }) => bcrypt.compare(password, hash),
+      // Migrated users may carry legacy bcrypt hashes (from Supabase or an earlier bridge) in the
+      // credential account. bcrypt.compare verifies any bcrypt hash; we guard against a missing or
+      // malformed stored hash so a user without a password set gets a clean "wrong credentials"
+      // result instead of a 500. (bcryptjs has no async race: `compare` never rejects on a bad hash.)
+      verify: async ({ hash, password }: { hash: string; password: string }) => {
+        if (!hash || typeof hash !== "string" || hash.length === 0) return false;
+        try {
+          return await bcrypt.compare(password, hash);
+        } catch {
+          return false;
+        }
+      },
     },
     async sendResetPassword({ user, url }) {
       await sendMail({

@@ -86,6 +86,18 @@ export type BuyerFormValues = z.input<typeof buyerSchema>;
 export const paymentSchema = z.object({
   invoice_id: z.uuid(),
   amount: decimal.refine((v) => v.trim() !== "", "Enter an amount."),
+  /** TDS rate (%) as typed — e.g. "10", "2.5". Defaults to "0". */
+  tds_rate: z
+    .string()
+    .max(10)
+    .regex(/^\d*\.?\d*$/, "Enter a valid TDS percentage.")
+    .default("0"),
+  /** TDS withheld (₹) as typed. Defaults to "0". */
+  tds_paise_input: z
+    .string()
+    .max(20)
+    .regex(/^\s*-?[\d,]*\.?\d*\s*$/, "Enter a number.")
+    .default("0"),
   paid_on: z.iso.date(),
   method: z.enum(["upi", "bank_transfer", "cash", "cheque", "other"]),
   reference: text(100),

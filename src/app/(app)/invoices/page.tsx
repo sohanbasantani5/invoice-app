@@ -79,6 +79,7 @@ async function InvoicesBody({
     receivedPaise: r.amount_paid_paise,
     tdsPaise: r.tds_paise,
     tdsRate: Number(r.tds_rate),
+    taxablePaise: r.taxable_paise,
     currency: r.currency,
     balancePaise: r.total_paise - r.tds_paise - r.amount_paid_paise,
     reminderCount: r.reminder_count,

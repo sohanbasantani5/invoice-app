@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { animate, useReducedMotion } from "motion/react";
-import { useFormContext, useWatch } from "react-hook-form";
-import { Field, Input, Switch } from "@/components/ui/field";
+import { useFormContext } from "react-hook-form";
+import { Switch } from "@/components/ui/field";
 import { Section } from "./section";
 import type { InvoiceFormValues } from "@/lib/validation/invoice";
 import type { PaperModel } from "@/lib/invoice/paper-model";
@@ -34,8 +34,7 @@ export function Ticker({ paise, currency = "INR" }: { paise: number; currency?: 
 }
 
 export function TotalsCard({ model, calc, currency }: { model: PaperModel; calc: CalcResult; currency: string }) {
-  const { register, control } = useFormContext<InvoiceFormValues>();
-  const tdsOn = useWatch({ control, name: "tds_enabled" });
+  const { register } = useFormContext<InvoiceFormValues>();
   const r = register;
   return (
     <Section id="totals" title="Tax & totals" summary={formatMoney(calc.total, currency)}>
@@ -57,17 +56,6 @@ export function TotalsCard({ model, calc, currency }: { model: PaperModel; calc:
       <p className="mt-3 text-caption">{model.words}</p>
       <div className="mt-5 flex flex-col gap-2 border-t border-border pt-4">
         <Switch label="Round off to the nearest rupee" {...r("round_off_enabled")} />
-        <Switch label="Client deducts TDS" description="Shows “Less TDS” and the net amount payable. TDS is on the value before GST." {...r("tds_enabled")} />
-        {tdsOn && (
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            <Field label="TDS label" htmlFor="tds_label">
-              <Input id="tds_label" placeholder="TDS" {...r("tds_label")} />
-            </Field>
-            <Field label="TDS rate (%)" htmlFor="tds_rate">
-              <Input id="tds_rate" inputMode="decimal" className="tnum" placeholder="10" {...r("tds_rate")} />
-            </Field>
-          </div>
-        )}
       </div>
     </Section>
   );

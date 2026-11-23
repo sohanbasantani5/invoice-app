@@ -136,6 +136,8 @@ create table if not exists public.payments (
   invoice_id uuid not null references public.invoices on delete cascade,
   user_id uuid not null default auth.uid() references auth.users on delete cascade,
   amount_paise bigint not null check (amount_paise > 0),
+  tds_paise bigint not null default 0 check (tds_paise >= 0),
+  tds_rate numeric(5,2) not null default 0 check (tds_rate >= 0),
   paid_on date not null default current_date,
   method text check (method in ('upi','bank_transfer','cash','cheque','other')),
   reference text,
@@ -265,7 +267,11 @@ begin
     igst_paise = excluded.igst_paise, round_off_paise = excluded.round_off_paise,
     total_paise = excluded.total_paise, tds_paise = excluded.tds_paise,
     notes = excluded.notes, terms = excluded.terms, show_bank = excluded.show_bank,
-    show_upi_qr = excluded.show_upi_qr, show_signature = excluded.show_signature
+    show_upi_qr = excluded.show_upi_qr, show_signature = excluded.show_signature,
+    -- Status changes (e.g. draft → sent) persist atomically with the save, so an invoice
+    -- never stays stuck as a draft because a separate follow-up update was lost.
+    status = coalesce(excluded.status, i.status),
+    sent_at = coalesce(excluded.sent_at, i.sent_at)
   where i.user_id = v_uid;
 
   if not found then raise exception 'invoice not found'; end if;
@@ -304,23 +310,40 @@ begin
     use_count = it.use_count + 1, last_used_at = now();
 end $$;
 
--- Keep invoices.amount_paid_paise + status in sync with the payments table.
+-- Keep invoices.amount_paid_paise, tds_paise + status in sync with the payments table.
+-- Settlement rule: an invoice is Paid when Cash Received + TDS Withheld >= total_paise.
+-- `tds_paise` keeps the legacy nominal deduction as a floor (GREATEST) so invoices that were
+-- issued with a deducted TDS before payments carried TDS never regress to partially_paid.
 create or replace function public.sync_invoice_payments() returns trigger
 language plpgsql security invoker set search_path = '' as $$
 declare
   v_id uuid := coalesce(new.invoice_id, old.invoice_id);
-  v_paid bigint;
+  v_received bigint;
+  v_tds bigint;
+  v_curr_tds bigint;
+  v_new_tds bigint;
+  v_settled bigint;
 begin
-  select coalesce(sum(amount_paise), 0) into v_paid from public.payments where invoice_id = v_id;
+  select coalesce(sum(amount_paise), 0), coalesce(sum(tds_paise), 0)
+    into v_received, v_tds
+    from public.payments where invoice_id = v_id;
+  select coalesce(tds_paise, 0) into v_curr_tds
+    from public.invoices where id = v_id;
+  v_new_tds := greatest(v_curr_tds, v_tds);
+  v_settled := v_received + v_new_tds;
   update public.invoices i set
-    amount_paid_paise = v_paid,
+    amount_paid_paise = v_received,
+    tds_paise = v_new_tds,
+    tds_rate = case
+      when v_tds > 0 then coalesce((select tds_rate from public.payments where invoice_id = v_id and tds_paise > 0 order by created_at desc limit 1), i.tds_rate)
+      else i.tds_rate end,
     status = case
       when i.status = 'cancelled' then i.status
-      when v_paid > 0 and v_paid >= i.total_paise - i.tds_paise then 'paid'
-      when v_paid > 0 then 'partially_paid'
+      when v_settled >= i.total_paise and (v_received > 0 or v_tds > 0) then 'paid'
+      when v_received > 0 or v_tds > 0 then 'partially_paid'
       when i.status in ('paid', 'partially_paid') then 'sent'
       else i.status end,
-    paid_at = case when v_paid > 0 and v_paid >= i.total_paise - i.tds_paise then coalesce(i.paid_at, now()) else null end
+    paid_at = case when v_settled >= i.total_paise and (v_received > 0 or v_tds > 0) then coalesce(i.paid_at, now()) else null end
   where i.id = v_id;
   return null;
 end $$;
@@ -401,4 +424,8 @@ alter table public.invoices add column if not exists last_reminder_sent_at times
 create index if not exists invoices_overdue_reminders_idx
   on public.invoices (due_date, user_id)
   where status in ('sent','partially_paid') and auto_remind and last_reminder_sent_at is null;
+
+-- Record-Payment TDS: additive columns on existing installs (100% ALTER TABLE ... ADD COLUMN IF NOT EXISTS).
+alter table public.payments add column if not exists tds_paise bigint not null default 0;
+alter table public.payments add column if not exists tds_rate numeric(5,2) not null default 0;
 commit;

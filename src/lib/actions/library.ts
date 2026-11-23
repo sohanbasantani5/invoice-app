@@ -24,7 +24,7 @@ export async function saveClient(clientId: string | null, input: ClientInput): P
   const row = { ...buyerFromForm(parsed.data), name: parsed.data.name.trim(), country: parsed.data.country.trim() || "India", notes: parsed.data.notes.trim() || null };
   const res = clientId
     ? await supabase.from("clients").update(row).eq("id", clientId).select("id").single()
-    : await supabase.from("clients").insert(row).select("id").single();
+    : await supabase.from("clients").insert({ ...row, user_id: user.id }).select("id").single();
   if (res.error) return { ok: false, error: res.error.message };
   revalidatePath("/clients", "layout");
   return { ok: true, id: res.data.id };
@@ -69,7 +69,7 @@ export async function saveItem(itemId: string | null, input: ItemInput): Promise
   };
   const res = itemId
     ? await supabase.from("items").update(row).eq("id", itemId).select("id").single()
-    : await supabase.from("items").insert(row).select("id").single();
+    : await supabase.from("items").insert({ ...row, user_id: user.id }).select("id").single();
   if (res.error) return { ok: false, error: res.error.code === "23505" ? "You already have an item with this name." : res.error.message };
   revalidatePath("/items");
   return { ok: true, id: res.data.id };

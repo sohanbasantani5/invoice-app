@@ -30,6 +30,8 @@ export type ListInvoice = {
   receivedPaise: number;
   tdsPaise: number;
   tdsRate: number;
+  /** Taxable (GST-exclusive) value — the base TDS is calculated on when recording a payment. */
+  taxablePaise: number;
   balancePaise: number;
   currency: string;
   /** How many overdue reminder emails have been sent (0 = none). */

@@ -10,6 +10,7 @@ import type { SellerSnapshot } from "@/lib/invoice/types";
 import type { ClientRow, InvoiceItemRow, InvoiceRow, InvoiceStatus, Json } from "@/types/database";
 import { parseRupeesToPaise, todayISO } from "@/lib/format";
 import { lastPaymentMethod } from "@/lib/invoice/load";
+import { buildPaymentInsert } from "@/lib/invoice/payment-math";
 
 export type SaveMode = "autosave" | "save" | "send";
 export type SaveResult =
@@ -75,7 +76,7 @@ export async function saveInvoice(
     } else {
       const { data, error } = await supabase
         .from("clients")
-        .insert({ ...clientRow, name: buyerName })
+        .insert({ ...clientRow, name: buyerName, user_id: user.id })
         .select("id")
         .single();
       if (error) return { ok: false, error: "Couldn't save the client. " + error.message };
@@ -100,6 +101,11 @@ export async function saveInvoice(
   });
   const calc = calcDocument(doc); // never trust client totals
 
+  // The status we want persisted. "Send"/"Save & Send" only upgrades a *draft* to sent —
+  // a paid/sent invoice keeps its status even if the user taps Email/Prepare.
+  const wasDraft = !existing || existing.status === "draft";
+  const desiredStatus: InvoiceStatus = mode === "send" && wasDraft ? "sent" : existing?.status ?? "draft";
+  const sendNow = desiredStatus === "sent";
   const invoice = {
     id: v.id,
     client_id: clientId,
@@ -107,7 +113,8 @@ export async function saveInvoice(
     invoice_number: invoiceNumber,
     financial_year: fy,
     sequence,
-    status: existing?.status ?? "draft",
+    status: desiredStatus,
+    sent_at: sendNow ? new Date().toISOString() : undefined,
     issue_date: doc.issue_date,
     due_date: doc.due_date,
     place_of_supply_code: doc.place_of_supply_code,
@@ -165,10 +172,16 @@ export async function saveInvoice(
     return { ok: false, error: "Couldn't save. " + error.message };
   }
 
-  let status = invoice.status;
-  if (mode === "send" && status === "draft") {
-    await supabase.from("invoices").update({ status: "sent", sent_at: new Date().toISOString() }).eq("id", id);
-    status = "sent";
+  // The RPC persists `status` atomically (new rows and ON CONFLICT updates). This secondary
+  // update only backfills sent_at for pre-existing rows where the upsert couldn't set it,
+  // and we surface any failure instead of silently leaving the invoice behind as a draft.
+  let status = desiredStatus;
+  if (sendNow) {
+    const { error } = await supabase
+      .from("invoices")
+      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) return { ok: false, error: "Saved the invoice but couldn't mark it as sent. " + error.message };
   }
   if (mode !== "autosave" && items.length) {
     await supabase.rpc("record_items", {
@@ -195,6 +208,8 @@ const statusChangeSchema = z.object({
   to: z.enum(["draft", "sent", "paid", "partially_paid", "cancelled"]),
   /** Rupees typed by the user — needed for partially_paid; optional override for paid. */
   amount: z.string().max(20).optional(),
+  tds_rate: z.string().max(10).regex(/^\d*\.?\d*$/).optional(),
+  tds_paise_input: z.string().max(20).optional(),
   paid_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   method: z.enum(["upi", "bank_transfer", "cash", "cheque", "other"]).optional(),
   reference: z.string().max(100).optional(),
@@ -268,13 +283,20 @@ export async function changeStatus(input: z.input<typeof statusChangeSchema>): P
   if (e1) return fail(e1.message);
 
   if (amount > 0) {
-    const { error } = await supabase.from("payments").insert({
-      invoice_id: v.id,
-      amount_paise: amount,
-      paid_on: v.paid_on || todayISO(),
-      method: v.method ?? (await lastPaymentMethod(supabase)),
-      reference: v.reference?.trim() || null,
-    });
+    const tdsPaise = Math.max(0, parseRupeesToPaise(v.tds_paise_input ?? "") ?? 0);
+    const tdsRate = Math.max(0, Number(v.tds_rate || "0"));
+    const { error } = await supabase.from("payments").insert(
+      buildPaymentInsert({
+        invoiceId: v.id,
+        userId: user.id,
+        amountPaise: amount,
+        tdsPaise,
+        tdsRate,
+        paidOn: v.paid_on || todayISO(),
+        method: v.method ?? (await lastPaymentMethod(supabase)),
+        reference: v.reference,
+      }),
+    );
     if (error) return fail(error.message);
   } else {
     // Nothing left to pay (zero-value or already covered): just mark it paid.
@@ -378,16 +400,26 @@ export async function addPayment(input: z.input<typeof paymentSchema>): Promise<
   const parsed = paymentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
   const amount = parseRupeesToPaise(parsed.data.amount);
+  // The payments table requires a positive cash amount (CHECK amount_paise > 0); TDS is recorded
+  // alongside a cash receipt, never as a payment on its own.
   if (!amount || amount <= 0) return { ok: false, error: "Enter an amount above zero." };
+  const tdsPaise = Math.max(0, parseRupeesToPaise(parsed.data.tds_paise_input) ?? 0);
+  const tdsRate = Math.max(0, Number(parsed.data.tds_rate || "0"));
   const { supabase, user } = await getUser();
   if (!user) return { ok: false, error: "Please sign in again." };
-  const { error } = await supabase.from("payments").insert({
-    invoice_id: parsed.data.invoice_id,
-    amount_paise: amount,
-    paid_on: parsed.data.paid_on || todayISO(),
-    method: parsed.data.method,
-    reference: parsed.data.reference.trim() || null,
-  });
+  // user_id is explicit — Postgres no longer fills it via auth.uid() after the Supabase migration.
+  const { error } = await supabase.from("payments").insert(
+    buildPaymentInsert({
+      invoiceId: parsed.data.invoice_id,
+      userId: user.id,
+      amountPaise: amount,
+      tdsPaise,
+      tdsRate,
+      paidOn: parsed.data.paid_on || todayISO(),
+      method: parsed.data.method,
+      reference: parsed.data.reference,
+    }),
+  );
   if (error) return { ok: false, error: error.message };
   refresh();
   return { ok: true };

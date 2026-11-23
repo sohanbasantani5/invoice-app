@@ -54,6 +54,7 @@ export default async function InvoicePage({ params }: PageProps<"/invoices/[id]"
           payablePaise={row.total_paise - row.tds_paise}
           paidPaise={row.amount_paid_paise}
           status={row.status}
+          taxablePaise={row.taxable_paise}
         />
       )}
     </InvoiceView>

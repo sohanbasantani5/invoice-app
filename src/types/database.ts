@@ -164,6 +164,10 @@ export type PaymentRow = {
   invoice_id: string;
   user_id: string;
   amount_paise: number;
+  /** TDS withheld on this payment (₹ in paise). 0 when the client paid the full amount in cash. */
+  tds_paise: number;
+  /** TDS rate (%) used for this payment's withheld amount. 0 when no TDS was withheld. */
+  tds_rate: number;
   paid_on: string;
   method: PaymentMethod | null;
   reference: string | null;
