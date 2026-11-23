@@ -265,7 +265,10 @@ begin
     subtotal_paise = excluded.subtotal_paise, discount_paise = excluded.discount_paise,
     taxable_paise = excluded.taxable_paise, cgst_paise = excluded.cgst_paise, sgst_paise = excluded.sgst_paise,
     igst_paise = excluded.igst_paise, round_off_paise = excluded.round_off_paise,
-    total_paise = excluded.total_paise, tds_paise = excluded.tds_paise,
+    total_paise = excluded.total_paise,
+    -- tds_paise is managed by sync_invoice_payments (recorded TDS / legacy nominal); a save
+    -- must never overwrite it, so keep the stored value when the save omits it.
+    tds_paise = coalesce(excluded.tds_paise, i.tds_paise),
     notes = excluded.notes, terms = excluded.terms, show_bank = excluded.show_bank,
     show_upi_qr = excluded.show_upi_qr, show_signature = excluded.show_signature,
     -- Status changes (e.g. draft → sent) persist atomically with the save, so an invoice

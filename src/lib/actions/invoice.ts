@@ -136,7 +136,8 @@ export async function saveInvoice(
     igst_paise: calc.igst,
     round_off_paise: calc.roundOff,
     total_paise: calc.total,
-    tds_paise: calc.tds,
+    // tds_paise is intentionally NOT sent: it is maintained by the sync trigger from recorded
+    // payments (or preserved legacy nominal), so saving must never overwrite it.
     notes: doc.notes,
     terms: doc.terms,
     show_bank: doc.show_bank,

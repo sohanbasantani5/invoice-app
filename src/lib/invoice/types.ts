@@ -83,6 +83,8 @@ export type InvoiceDocument = {
   tds_enabled: boolean;
   tds_rate: number;
   tds_label: string;
+  /** TDS actually withheld on this invoice (recorded payments / legacy nominal), in paise. */
+  tds_paise?: number;
   amount_paid_paise: number;
   notes?: string | null;
   terms?: string | null;

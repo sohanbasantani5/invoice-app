@@ -70,6 +70,8 @@ export const invoiceFormSchema = z.object({
   tds_enabled: z.boolean().default(false),
   tds_rate: decimal,
   tds_label: text(40),
+  /** Recorded TDS (paise) — read-only on the form, used so the preview matches the saved invoice. */
+  tds_paise: z.coerce.number().min(0).max(1e15).default(0),
   notes: text(2000),
   terms: text(2000),
   show_bank: z.boolean().default(true),

@@ -69,6 +69,7 @@ export default async function NewInvoicePage({ searchParams }: PageProps<"/invoi
     tds_enabled: false,
     tds_rate: "",
     tds_label: "TDS",
+    tds_paise: 0,
     notes: profile?.default_notes ?? "",
     terms: profile?.default_terms ?? "",
     show_bank: true,

@@ -127,6 +127,7 @@ export function formToDocument(
     tds_enabled: !!v.tds_enabled,
     tds_rate: parseDecimal(v.tds_rate),
     tds_label: nul(v.tds_label) ?? "TDS",
+    tds_paise: Math.max(0, Number(v.tds_paise) || 0), // recorded on save via payments; shown for preview parity
     amount_paid_paise: extra.amountPaidPaise ?? 0,
     notes: nul(v.notes),
     terms: nul(v.terms),
@@ -182,6 +183,7 @@ export function rowToDocument(row: InvoiceRow, items: InvoiceItemRow[]): Invoice
     tds_enabled: row.tds_enabled,
     tds_rate: Number(row.tds_rate),
     tds_label: row.tds_label,
+    tds_paise: Number(row.tds_paise) || 0,
     amount_paid_paise: row.amount_paid_paise,
     notes: row.notes,
     terms: row.terms,
@@ -242,6 +244,7 @@ export function documentToForm(doc: InvoiceDocument, clientId: string | null): I
     tds_enabled: doc.tds_enabled,
     tds_rate: doc.tds_rate ? String(doc.tds_rate) : "",
     tds_label: doc.tds_label,
+    tds_paise: doc.tds_paise ?? 0,
     notes: doc.notes ?? "",
     terms: doc.terms ?? "",
     show_bank: doc.show_bank,

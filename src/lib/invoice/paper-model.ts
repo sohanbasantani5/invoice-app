@@ -125,6 +125,7 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
       amount: plain(c.amount),
     }));
 
+  // Billing section (unchanged): Subtotal → GST → Total.
   const totals: TotalRow[] = [{ label: "Subtotal", value: money(calc.subtotal) }];
   if (calc.discount) totals.push({ label: "Discount", value: `− ${money(calc.discount)}` });
   if (calc.discount || calc.hasTax) totals.push({ label: "Taxable value", value: money(calc.taxable) });
@@ -138,15 +139,18 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
   }
   if (calc.roundOff) totals.push({ label: "Round off", value: `${calc.roundOff > 0 ? "+" : "−"} ${money(Math.abs(calc.roundOff))}` });
   totals.push({ label: "Total", value: money(calc.total), strong: true, rule: true });
-  if (doc.tds_enabled && calc.tds) {
-    totals.push({ label: `Less ${doc.tds_label || "TDS"} (${doc.tds_rate}%)`, value: `− ${money(calc.tds)}` });
-    totals.push({ label: "Net payable", value: money(calc.netPayable), strong: true });
-  }
-  if (calc.amountPaid) {
-    totals.push({ label: "Amount paid", value: `− ${money(calc.amountPaid)}` });
-  }
-  if (calc.amountPaid || (doc.tds_enabled && calc.tds)) {
-    totals.push({ label: "Balance due", value: money(calc.balanceDue), strong: true, accent: true });
+
+  // Payment Settlement section directly below Total: shown when anything has been paid/withheld.
+  const amountPaid = Math.max(0, calc.amountPaid);
+  const tdsDeducted = Math.max(0, doc.tds_paise ?? 0);
+  const balanceDue = Math.max(0, calc.total - amountPaid - tdsDeducted);
+  if (amountPaid > 0 || tdsDeducted > 0) {
+    if (amountPaid > 0) totals.push({ label: "Amount paid", value: `− ${money(amountPaid)}` });
+    if (tdsDeducted > 0) {
+      const pct = doc.tds_rate > 0 ? ` (${Number(doc.tds_rate)}%)` : "";
+      totals.push({ label: `TDS deducted${pct}`, value: `− ${money(tdsDeducted)}` });
+    }
+    totals.push({ label: "Balance due", value: money(balanceDue), strong: true, accent: true, rule: true });
   }
 
   const payLines: { label: string; value: string }[] = [];
@@ -157,8 +161,7 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
     if (s.bank_ifsc) payLines.push({ label: "IFSC", value: s.bank_ifsc });
   }
   if (s.upi_id) payLines.push({ label: "UPI", value: s.upi_id });
-  const payable = calc.balanceDue;
-  const upiText = doc.show_upi_qr && doc.status !== "paid" && doc.status !== "cancelled" ? upiLink(doc, payable) : null;
+  const upiText = doc.show_upi_qr && doc.status !== "paid" && doc.status !== "cancelled" ? upiLink(doc, balanceDue) : null;
 
   const sellerName = s.business_name || s.legal_name || "Your business name";
   return {
