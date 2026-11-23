@@ -141,15 +141,16 @@ export function buildPaperModel(doc: InvoiceDocument, calc: CalcResult): PaperMo
   totals.push({ label: "Total", value: money(calc.total), strong: true, rule: true });
 
   // Payment Settlement section directly below Total: shown when anything has been paid/withheld.
+  // Standard accounting order: TDS deducted → Amount paid → Balance due.
   const amountPaid = Math.max(0, calc.amountPaid);
   const tdsDeducted = Math.max(0, doc.tds_paise ?? 0);
   const balanceDue = Math.max(0, calc.total - amountPaid - tdsDeducted);
   if (amountPaid > 0 || tdsDeducted > 0) {
-    if (amountPaid > 0) totals.push({ label: "Amount paid", value: `− ${money(amountPaid)}` });
     if (tdsDeducted > 0) {
       const pct = doc.tds_rate > 0 ? ` (${Number(doc.tds_rate)}%)` : "";
       totals.push({ label: `TDS deducted${pct}`, value: `− ${money(tdsDeducted)}` });
     }
+    if (amountPaid > 0) totals.push({ label: "Amount paid", value: `− ${money(amountPaid)}` });
     totals.push({ label: "Balance due", value: money(balanceDue), strong: true, accent: true, rule: true });
   }
 

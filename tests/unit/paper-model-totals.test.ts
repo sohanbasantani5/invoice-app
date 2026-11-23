@@ -51,12 +51,12 @@ describe("buildPaperModel totals layout", () => {
     });
     const m = buildPaperModel(d, calcDocument(d));
     const labels = m.totals.map((t) => t.label);
-    expect(labels).toEqual(["Subtotal", "Total", "Amount paid", "TDS deducted (10%)", "Balance due"]);
+    expect(labels).toEqual(["Subtotal", "Total", "TDS deducted (10%)", "Amount paid", "Balance due"]);
 
     expect(m.totals[0].value).toBe("₹2,75,100.00"); // Subtotal
     expect(m.totals[1].value).toBe("₹2,75,100.00"); // Total
-    expect(m.totals[2].value).toBe("− ₹2,47,590.00"); // Amount paid
-    expect(m.totals[3].value).toBe("− ₹27,510.00"); // TDS deducted
+    expect(m.totals[2].value).toBe("− ₹27,510.00"); // TDS deducted
+    expect(m.totals[3].value).toBe("− ₹2,47,590.00"); // Amount paid
     expect(m.totals[4]).toMatchObject({ value: "₹0.00", strong: true, accent: true, rule: true }); // Balance due
   });
 
