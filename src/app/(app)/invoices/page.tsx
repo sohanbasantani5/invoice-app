@@ -81,6 +81,10 @@ async function InvoicesBody({
     tdsRate: Number(r.tds_rate),
     currency: r.currency,
     balancePaise: r.total_paise - r.tds_paise - r.amount_paid_paise,
+    reminderCount: r.reminder_count,
+    lastRemindedAt: r.last_reminder_sent_at
+      ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(r.last_reminder_sent_at))
+      : null,
   }));
 
   if (count === 0 && !filtered) {

@@ -7,7 +7,8 @@ type DB = any;
 export const LIST_COLUMNS =
   "id, invoice_number, issue_date, due_date, status, currency, doc_type, buyer, client_id, " +
   "subtotal_paise, discount_paise, taxable_paise, cgst_paise, sgst_paise, igst_paise, " +
-  "round_off_paise, total_paise, tds_enabled, tds_rate, tds_label, tds_paise, amount_paid_paise";
+  "round_off_paise, total_paise, tds_enabled, tds_rate, tds_label, tds_paise, amount_paid_paise, " +
+  "auto_remind, reminder_count, last_reminder_sent_at";
 
 export type ListInvoiceRow = Pick<
   InvoiceRow,
@@ -33,6 +34,9 @@ export type ListInvoiceRow = Pick<
   | "tds_label"
   | "tds_paise"
   | "amount_paid_paise"
+  | "auto_remind"
+  | "reminder_count"
+  | "last_reminder_sent_at"
 >;
 
 /** Rows rendered per page. Exports ignore this and read every matching row. */

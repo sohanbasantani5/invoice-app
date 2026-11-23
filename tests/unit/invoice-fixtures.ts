@@ -27,6 +27,9 @@ export function row(overrides: Partial<ListInvoiceRow> = {}): ListInvoiceRow {
     tds_label: "TDS",
     tds_paise: 0,
     amount_paid_paise: 0,
+    auto_remind: true,
+    reminder_count: 0,
+    last_reminder_sent_at: null,
     ...overrides,
   };
 }

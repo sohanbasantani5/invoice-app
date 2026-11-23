@@ -93,6 +93,25 @@ export async function GET(request: Request) {
       source = sampleRows.map((r) => ({ ...r, isSample: true }));
     }
 
+    // Diagnostic: overdue auto-remind invoices that cannot be emailed because the
+    // client record has no address. They never enter the loop above (which
+    // filters `c.email is not null`), so surface them so operators notice them
+    // instead of silently skipping.
+    const { rows: missingRows } = await pool.query<{ invoice_number: string; client_name: string | null }>(
+      `
+      select i.invoice_number, c.name as client_name
+      from public.invoices i
+      join public.clients c on c.id = i.client_id and c.user_id = i.user_id
+      where i.status in ('sent', 'partially_paid')
+        and i.auto_remind = true
+        and i.due_date < (now() at time zone 'Asia/Kolkata')::date
+        and i.currency = 'INR'
+        and c.email is null
+      order by i.due_date, i.id
+      `
+    );
+    const skippedMissingEmail = missingRows.map((r) => ({ invoice_number: r.invoice_number, client_name: r.client_name }));
+
     const now = new Date();
     const results: { invoice_id: string; recipient: string; sent: boolean; stage: number }[] = [];
 
@@ -103,6 +122,17 @@ export async function GET(request: Request) {
       if (amountDue <= 0) continue;
 
       const daysOverdue = Math.floor((now.getTime() - new Date(row.due_date).getTime()) / 86400000);
+
+      // Cadence is THRESHOLD-based, not modulo. targetStages[n] is the earliest
+      // days-overdue point at which reminder n+1 goes out:
+      //   reminder_count 0 -> stage 1  (sends the day after the due date)
+      //   reminder_count 1 -> stage 7
+      //   reminder_count 2 -> stage 14
+      // Because each stage is a ">= X days overdue" floor, a reminder that was
+      // missed (e.g. cron down, or a client had no email at the time) fires on
+      // the very next run once the threshold is reached — it never waits for an
+      // exact multiple of 7 days. An invoice >=7 days overdue with
+      // reminder_count 0 is therefore still sent immediately on the next run.
       const targetStages = [1, 7, 14];
       const currentStage = row.reminder_count ?? 0;
       const nextStage = targetStages[currentStage];
@@ -131,6 +161,8 @@ export async function GET(request: Request) {
       let sent = false;
       if (!DRY_RUN) {
         try {
+          // Recipient override only applies when ?testTo= was explicitly passed;
+          // normal scheduled runs (no query param) send to the client's email.
           await sendEmail(testTo ?? row.email, preview.subject, preview.text, preview.html, preview.attachments);
           sent = true;
         } catch {
@@ -138,7 +170,12 @@ export async function GET(request: Request) {
         }
       }
 
-      if (!DRY_RUN) {
+      // Persist the "last reminded" state only for real invoices, never for
+      // sample rows from a ?testTo= smoke test (isSample). Otherwise a manual
+      // test run would fake a real reminder: bump reminder_count and set
+      // last_reminder_sent_at on production rows that were never actually
+      // reminded, which desynchronizes the cadence for real clients.
+      if (!DRY_RUN && !row.isSample) {
         await getPool().query(
           "update public.invoices set last_reminder_sent_at = now(), reminder_count = reminder_count + 1 where id = $1",
           [row.id]
@@ -154,6 +191,7 @@ export async function GET(request: Request) {
       updated: DRY_RUN ? 0 : results.filter((r) => r.sent).length,
       count: results.length,
       results,
+      skipped_missing_email: skippedMissingEmail,
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

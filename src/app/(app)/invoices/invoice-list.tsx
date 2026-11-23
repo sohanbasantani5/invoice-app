@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as m from "motion/react-m";
-import { Ban, Copy, Download, IndianRupee, MoreHorizontal, Pencil, Send, Trash2 } from "lucide-react";
+import { Ban, BellRing, Copy, Download, IndianRupee, MoreHorizontal, Pencil, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { StatusPill } from "@/components/invoice/status-pill";
 import { Menu, MenuItem, MenuSeparator } from "@/components/ui/menu";
@@ -32,7 +32,29 @@ export type ListInvoice = {
   tdsRate: number;
   balancePaise: number;
   currency: string;
+  /** How many overdue reminder emails have been sent (0 = none). */
+  reminderCount: number;
+  /** Date (IST, "YYYY-MM-DD") the last reminder was sent, or null if never. */
+  lastRemindedAt: string | null;
 };
+
+/** Compact "last reminded" cue shown next to the status pill. */
+function ReminderNote({ count, lastAt }: { count: number; lastAt: string | null }) {
+  if (count <= 0) return null;
+  const label = lastAt
+    ? `Reminder ${count}× sent on ${formatDate(lastAt)}`
+    : `Reminder ${count}× sent`;
+  return (
+    <span
+      title={label}
+      className="flex items-center gap-1 text-[11px] leading-none text-ink-3"
+    >
+      <BellRing aria-hidden className="size-3.5 shrink-0" />
+      <span>Reminded {count}×</span>
+      {lastAt && <span className="text-ink-3/80">· {formatDate(lastAt)}</span>}
+    </span>
+  );
+}
 
 // Rarely used, so they are fetched when first opened instead of weighing down every page load.
 const DeleteInvoicesDialog = dynamic(() => import("@/components/invoice/delete-invoices").then((m) => m.DeleteInvoicesDialog));
@@ -219,7 +241,10 @@ export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                      <div className="flex flex-col items-start gap-1.5">
+                        <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                        <ReminderNote count={inv.reminderCount} lastAt={inv.lastRemindedAt} />
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-right whitespace-nowrap">{money(inv.totalPaise, inv.currency)}</td>
                     <td className="px-3 py-3 text-right whitespace-nowrap">
@@ -274,7 +299,10 @@ export function InvoiceList({ invoices }: { invoices: ListInvoice[] }) {
                     <span className="truncate font-mono text-xs text-ink-3">
                       {inv.number} · {formatDate(inv.issueDate)}
                     </span>
-                    <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                    <span className="flex shrink-0 items-center gap-1.5">
+                      <StatusPill status={inv.status} dueDate={inv.dueDate} />
+                      <ReminderNote count={inv.reminderCount} lastAt={inv.lastRemindedAt} />
+                    </span>
                   </div>
                 </Link>
                 <div className="-mt-1 -mr-1">{actions(inv)}</div>

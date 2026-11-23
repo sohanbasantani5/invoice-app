@@ -27,7 +27,7 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("invoices")
-      .select("id, invoice_number, issue_date, due_date, status, total_paise, tds_rate, tds_paise, amount_paid_paise, currency, buyer")
+      .select("id, invoice_number, issue_date, due_date, status, total_paise, tds_rate, tds_paise, amount_paid_paise, currency, buyer, reminder_count, last_reminder_sent_at")
       .eq("client_id", id)
       .order("issue_date", { ascending: false }),
   ]);
@@ -46,6 +46,10 @@ export default async function ClientPage({ params }: PageProps<"/clients/[id]">)
     tdsRate: Number(r.tds_rate),
     balancePaise: r.total_paise - r.tds_paise - r.amount_paid_paise,
     currency: r.currency,
+    reminderCount: r.reminder_count,
+    lastRemindedAt: r.last_reminder_sent_at
+      ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date(r.last_reminder_sent_at))
+      : null,
   }));
   const live = invoices.filter((i) => i.status !== "draft" && i.status !== "cancelled" && i.currency === "INR");
   const billed = live.reduce((a, i) => a + i.totalPaise, 0);

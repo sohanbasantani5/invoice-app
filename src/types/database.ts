@@ -133,6 +133,12 @@ export type InvoiceRow = {
   paid_at: string | null;
   created_at: string;
   updated_at: string;
+  /** Opt-in to automatic overdue reminder emails (cron overdue-reminders). */
+  auto_remind: boolean;
+  /** How many reminder emails have been sent for this invoice. */
+  reminder_count: number;
+  /** When the last reminder email was sent (null = never). */
+  last_reminder_sent_at: string | null;
 };
 
 export type InvoiceItemRow = {
