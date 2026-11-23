@@ -17,6 +17,11 @@ export function percentFromTdsWithheld(basePaise: number, withheldPaise: number)
   return Math.round((withheldPaise / basePaise) * 1000) / 10;
 }
 
+/** Net cash received after the client deducts TDS from the amount due. Never negative. */
+export function netReceivedFromDue(duePaise: number, deductedPaise: number): number {
+  return Math.max(0, duePaise - Math.max(0, deductedPaise));
+}
+
 /** Settlement math for a single payment decision (mirrors the sync trigger's rule). */
 export function settlementMath(input: {
   totalPaise: number;

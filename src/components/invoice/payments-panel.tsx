@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { addPayment, deletePayment } from "@/lib/actions/invoice";
 import { formatDate, formatMoney, paiseToInput, parseRupeesToPaise, todayISO } from "@/lib/format";
-import { percentFromTdsWithheld, tdsWithheldFromPercent } from "@/lib/invoice/payment-math";
+import { netReceivedFromDue, percentFromTdsWithheld, tdsWithheldFromPercent } from "@/lib/invoice/payment-math";
+import { cn } from "@/lib/utils";
 import type { InvoiceStatus, PaymentMethod, PaymentRow } from "@/types/database";
 
 export const METHODS: { value: PaymentMethod; label: string }[] = [
@@ -20,7 +21,13 @@ export const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-/** Record a payment (full or partial). Inputs are stand-alone, not part of the invoice form. */
+/**
+ * Record a payment (full or partial). TDS is a DEDUCTION from the invoice amount:
+ *   TDS Deducted     = round(taxable_base × tds% / 100)
+ *   Net Amount Received = max(0, remaining due − TDS deducted)
+ * The stored values are the NET cash received (payments.amount_paise) and the TDS deducted
+ * (payments.tds_paise). The sync trigger marks the invoice Paid when cash + TDS ≥ total.
+ */
 export function PaymentForm({
   invoiceId,
   balancePaise,
@@ -34,39 +41,57 @@ export function PaymentForm({
   onDone?: () => void;
 }) {
   const router = useRouter();
-  const [amount, setAmount] = useState(balancePaise > 0 ? paiseToInput(balancePaise) : "");
+  const duePaise = Math.max(0, balancePaise);
+  const basePaise = Math.max(0, taxablePaise);
+
   const [tdsPercent, setTdsPercent] = useState("0");
-  const [tdsWithheld, setTdsWithheld] = useState("");
+  const [tdsDeducted, setTdsDeducted] = useState("");
+  const [netReceived, setNetReceived] = useState(paiseToInput(duePaise));
+  /** True once the user edits Net Amount Received by hand (a partial payment) — from then on,
+   *  TDS changes must not clobber their amount. */
+  const [netEdited, setNetEdited] = useState(false);
   const [paidOn, setPaidOn] = useState(todayISO());
   const [method, setMethod] = useState<PaymentMethod>("upi");
   const [reference, setReference] = useState("");
   const [pending, start] = useTransition();
 
-  const basePaise = Math.max(0, taxablePaise);
-  const amountPaise = parseRupeesToPaise(amount) ?? 0;
-  const withheldPaise = parseRupeesToPaise(tdsWithheld) ?? 0;
+  const tdsPaise = parseRupeesToPaise(tdsDeducted) ?? 0;
+  const netPaise = parseRupeesToPaise(netReceived) ?? 0;
+  const remainingAfter = Math.max(0, duePaise - netPaise - tdsPaise);
+
+  /** Re-derive Net Amount Received from the deduction unless the user narrowed it by hand. */
+  function syncNetFromTds(deducted: number) {
+    if (!netEdited) setNetReceived(paiseToInput(netReceivedFromDue(duePaise, deducted)));
+  }
 
   function onPercentChange(raw: string) {
     setTdsPercent(raw);
     const pct = Math.max(0, Number(raw) || 0);
-    const withheld = tdsWithheldFromPercent(basePaise, pct);
-    setTdsWithheld(withheld > 0 ? paiseToInput(withheld) : "");
+    const deducted = tdsWithheldFromPercent(basePaise, pct);
+    setTdsDeducted(deducted > 0 ? paiseToInput(deducted) : "");
+    syncNetFromTds(deducted);
   }
 
-  function onWithheldChange(raw: string) {
-    setTdsWithheld(raw);
+  function onTdsDeductedChange(raw: string) {
+    setTdsDeducted(raw);
     const paise = parseRupeesToPaise(raw) ?? 0;
     const pct = percentFromTdsWithheld(basePaise, paise);
     setTdsPercent(pct > 0 ? String(pct) : "0");
+    syncNetFromTds(paise);
+  }
+
+  function onNetChange(raw: string) {
+    setNetReceived(raw);
+    setNetEdited(true);
   }
 
   function submit() {
     start(async () => {
       const r = await addPayment({
         invoice_id: invoiceId,
-        amount,
+        amount: netReceived,
         tds_rate: tdsPercent || "0",
-        tds_paise_input: tdsWithheld || "0",
+        tds_paise_input: tdsDeducted || "0",
         paid_on: paidOn,
         method,
         reference,
@@ -78,42 +103,64 @@ export function PaymentForm({
     });
   }
 
-  const settlePaise = amountPaise + withheldPaise;
-
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <Field label="Amount received (₹)" htmlFor={`pay-amount-${invoiceId}`}>
-        <Input id={`pay-amount-${invoiceId}`} inputMode="decimal" className="tnum" value={amount} onChange={(e) => setAmount(e.target.value)} />
-      </Field>
-      <Field label="TDS (%)" htmlFor={`pay-tds-pct-${invoiceId}`} helper={basePaise > 0 ? "Auto-calculates TDS withheld." : "No taxable base on this invoice."}>
-        <Input id={`pay-tds-pct-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsPercent} onChange={(e) => onPercentChange(e.target.value)} />
-      </Field>
-      <Field label="TDS withheld (₹)" htmlFor={`pay-tds-amt-${invoiceId}`}>
-        <Input id={`pay-tds-amt-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsWithheld} onChange={(e) => onWithheldChange(e.target.value)} />
-      </Field>
-      <Field
-        label="Amount to settle (₹)"
-        htmlFor={`pay-settle-${invoiceId}`}
-        helper={withheldPaise > 0 ? "Cash received + TDS withheld." : "Same as what you received."}
-      >
-        <Input id={`pay-settle-${invoiceId}`} className="tnum" readOnly value={settlePaise > 0 ? paiseToInput(settlePaise) : "0"} />
-      </Field>
-      <Field label="Paid on" htmlFor={`pay-date-${invoiceId}`}>
-        <Input id={`pay-date-${invoiceId}`} type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
-      </Field>
-      <Field label="Method" htmlFor={`pay-method-${invoiceId}`}>
-        <Select id={`pay-method-${invoiceId}`} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
-          {METHODS.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </Select>
-      </Field>
-      <Field label="Reference" htmlFor={`pay-ref-${invoiceId}`} badge="optional">
-        <Input id={`pay-ref-${invoiceId}`} placeholder="UTR / cheque no." value={reference} onChange={(e) => setReference(e.target.value)} />
-      </Field>
-      <Button className="col-span-2" onClick={submit} disabled={pending}>
+    <div className="flex flex-col gap-3">
+      {/* Summary line */}
+      <p className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2 text-sm">
+        <span className="text-ink-3">Invoice Due</span>
+        <span className="tnum font-medium">{formatMoney(duePaise)}</span>
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="TDS (%)" htmlFor={`pay-tds-pct-${invoiceId}`} helper={basePaise > 0 ? "Auto-calculates the TDS amount." : "No taxable base on this invoice."}>
+          <Input id={`pay-tds-pct-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsPercent} onChange={(e) => onPercentChange(e.target.value)} />
+        </Field>
+        <Field label="TDS deducted (₹)" htmlFor={`pay-tds-amt-${invoiceId}`}>
+          <Input id={`pay-tds-amt-${invoiceId}`} inputMode="decimal" className="tnum" placeholder="0" value={tdsDeducted} onChange={(e) => onTdsDeductedChange(e.target.value)} />
+        </Field>
+        <Field label="Net amount received (₹)" htmlFor={`pay-net-${invoiceId}`} helper={tdsPaise > 0 ? "After deducting TDS from the amount due." : "Defaults to the full amount due."}>
+          <Input id={`pay-net-${invoiceId}`} inputMode="decimal" className="tnum" value={netReceived} onChange={(e) => onNetChange(e.target.value)} />
+        </Field>
+        <Field label="Paid on" htmlFor={`pay-date-${invoiceId}`}>
+          <Input id={`pay-date-${invoiceId}`} type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
+        </Field>
+        <Field label="Method" htmlFor={`pay-method-${invoiceId}`}>
+          <Select id={`pay-method-${invoiceId}`} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+            {METHODS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Reference" htmlFor={`pay-ref-${invoiceId}`} badge="optional">
+          <Input id={`pay-ref-${invoiceId}`} placeholder="UTR / cheque no." value={reference} onChange={(e) => setReference(e.target.value)} />
+        </Field>
+      </div>
+
+      {/* Live settlement breakdown */}
+      <div className="rounded-lg border border-border bg-surface-2/50 px-3 py-2.5 text-sm">
+        <dl className="flex flex-col gap-1">
+          <div className="flex justify-between">
+            <dt className="text-ink-3">Invoice Due</dt>
+            <dd className="tnum">{formatMoney(duePaise)}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-ink-3">Less: TDS deducted</dt>
+            <dd className="tnum">{tdsPaise > 0 ? `− ${formatMoney(tdsPaise)}` : "—"}</dd>
+          </div>
+          <div className="flex justify-between">
+            <dt className="text-ink-3">Less: Net cash received</dt>
+            <dd className="tnum">{netPaise > 0 ? `− ${formatMoney(netPaise)}` : "—"}</dd>
+          </div>
+          <div className="mt-1 flex justify-between border-t border-border pt-1.5 font-medium">
+            <dt>Remaining balance after payment</dt>
+            <dd className={cn("tnum", remainingAfter === 0 ? "text-success" : "text-accent")}>{formatMoney(remainingAfter)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <Button onClick={submit} disabled={pending}>
         {pending ? "Saving…" : "Record payment"}
       </Button>
     </div>
