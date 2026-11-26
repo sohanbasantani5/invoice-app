@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { getPool } from "@/lib/db/pool";
 import { renderReminder, type ReminderAttachment } from "@/lib/email/reminder-template";
+import { evaluateReminder, MAX_REMINDERS, REMINDER_ELIGIBILITY_SQL } from "@/lib/email/reminder-cadence";
 import { createTransport } from "nodemailer";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,10 @@ export async function GET(request: Request) {
         and i.due_date < (now() at time zone 'Asia/Kolkata')::date
         and i.currency = 'INR'
         and c.email is not null
+        -- Reminder 4 never exists, and reminders 2/3 need a full 7 days since
+        -- the previous one. Blocked rows are never loaded, so they can never be
+        -- sent even if the loop below is edited. Mirrored in evaluateReminder.
+        and ${REMINDER_ELIGIBILITY_SQL}
       order by i.due_date, i.id
     `);
 
@@ -114,6 +119,12 @@ export async function GET(request: Request) {
 
     const now = new Date();
     const results: { invoice_id: string; recipient: string; sent: boolean; stage: number }[] = [];
+    const skippedCadence: {
+      invoice_number: string;
+      reason: string;
+      days_overdue: number;
+      days_since_last_reminder: number | null;
+    }[] = [];
 
     for (const raw of source) {
       const row = raw as Candidate & { isSample?: boolean };
@@ -121,23 +132,37 @@ export async function GET(request: Request) {
       const amountDue = Math.max(0, Number(row.total_paise) - Number(row.tds_paise) - Number(row.amount_paid_paise));
       if (amountDue <= 0) continue;
 
-      const daysOverdue = Math.floor((now.getTime() - new Date(row.due_date).getTime()) / 86400000);
+      // Two gates, in this order: the days-overdue threshold for the current
+      // stage (1 / 7 / 14), then — for reminders 2 and 3 — a hard 7-day cooldown
+      // since `last_reminder_sent_at`. Without the cooldown an invoice that was
+      // already >=14 days overdue when first picked up fired stages 1, 2 and 3
+      // on three consecutive days. `reminder_count >= 3` stops the ladder for
+      // good. See src/lib/email/reminder-cadence.ts for the rule itself.
+      const decision = evaluateReminder(
+        {
+          dueDate: row.due_date,
+          reminderCount: row.reminder_count,
+          lastReminderSentAt: row.last_reminder_sent_at,
+        },
+        now
+      );
 
-      // Cadence is THRESHOLD-based, not modulo. targetStages[n] is the earliest
-      // days-overdue point at which reminder n+1 goes out:
-      //   reminder_count 0 -> stage 1  (sends the day after the due date)
-      //   reminder_count 1 -> stage 7
-      //   reminder_count 2 -> stage 14
-      // Because each stage is a ">= X days overdue" floor, a reminder that was
-      // missed (e.g. cron down, or a client had no email at the time) fires on
-      // the very next run once the threshold is reached — it never waits for an
-      // exact multiple of 7 days. An invoice >=7 days overdue with
-      // reminder_count 0 is therefore still sent immediately on the next run.
-      const targetStages = [1, 7, 14];
-      const currentStage = row.reminder_count ?? 0;
-      const nextStage = targetStages[currentStage];
+      if (!row.isSample && !decision.eligible) {
+        skippedCadence.push({
+          invoice_number: row.invoice_number,
+          reason: decision.reason,
+          days_overdue: decision.daysOverdue,
+          days_since_last_reminder: decision.daysSinceLastReminder,
+        });
+        continue;
+      }
 
-      if (!row.isSample && (!nextStage || daysOverdue < nextStage)) continue;
+      // ?testTo= sample rows are an SMTP/QR smoke test, not a cadence decision:
+      // they render the next stage (clamped to 1..3) even when the real ladder
+      // would block, and they never persist state.
+      const reminderNumber = row.isSample
+        ? Math.min(MAX_REMINDERS, Math.max(1, (row.reminder_count ?? 0) + 1))
+        : decision.stage ?? Math.min(MAX_REMINDERS, (row.reminder_count ?? 0) + 1);
 
       const bank = row.show_bank
         ? {
@@ -155,7 +180,7 @@ export async function GET(request: Request) {
         dueDate: row.due_date,
         upiId: row.show_upi_qr ? String(seller.upi_id || "") : null,
         bank,
-        reminderCount: currentStage + 1,
+        reminderCount: reminderNumber,
       });
 
       let sent = false;
@@ -170,28 +195,30 @@ export async function GET(request: Request) {
         }
       }
 
-      // Persist the "last reminded" state only for real invoices, never for
-      // sample rows from a ?testTo= smoke test (isSample). Otherwise a manual
-      // test run would fake a real reminder: bump reminder_count and set
-      // last_reminder_sent_at on production rows that were never actually
-      // reminded, which desynchronizes the cadence for real clients.
-      if (!DRY_RUN && !row.isSample) {
+      // Persist the "last reminded" state only for real scheduled sends. A
+      // ?testTo= run redirects the mail to the operator's inbox, so bumping
+      // reminder_count / last_reminder_sent_at would fake a reminder the client
+      // never received and desynchronize the cadence — and with the 7-day
+      // cooldown it would also silence that client for a week. Same for sample
+      // rows (isSample).
+      if (!DRY_RUN && !row.isSample && !testTo) {
         await getPool().query(
           "update public.invoices set last_reminder_sent_at = now(), reminder_count = reminder_count + 1 where id = $1",
           [row.id]
         );
       }
 
-      results.push({ invoice_id: row.id, recipient: testTo ?? row.email, sent, stage: currentStage + 1 });
+      results.push({ invoice_id: row.id, recipient: testTo ?? row.email, sent, stage: reminderNumber });
     }
 
     return Response.json({
       dry_run: DRY_RUN,
       sent: results.filter((r) => r.sent).length,
-      updated: DRY_RUN ? 0 : results.filter((r) => r.sent).length,
+      updated: DRY_RUN || testTo ? 0 : results.filter((r) => r.sent).length,
       count: results.length,
       results,
       skipped_missing_email: skippedMissingEmail,
+      skipped_cadence: skippedCadence,
     }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
